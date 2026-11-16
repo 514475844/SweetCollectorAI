@@ -117,8 +117,6 @@ SweetCollectorAI/
 | --- | --- |
 | [SweetReader](https://github.com/514475844/SweetReader) | 自托管个人书库与阅读器，支持 EPUB / PDF / DOC / TXT 在线阅读、全文搜索、进度记忆 |
 | [SweetReader-Plugins](https://github.com/514475844/SweetReader-Plugins) | SweetReader 的插件集合 |
-| [dsh-our-free-model](https://github.com/514475844/dsh-our-free-model) | 免密钥的大模型接入插件 |
-| [Songloft 插件系列](https://github.com/514475844/songloft-plugin-registry) | 音乐服务器相关插件：小爱音箱遥控、MV 搜索、歌单整理、插件市场与订阅源 |
 
 **联系方式**：GitHub [514475844](https://github.com/514475844) · 邮箱 514475844@163.com
 
