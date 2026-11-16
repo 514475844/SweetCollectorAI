@@ -1,0 +1,59 @@
+# 通用图库适配器：覆盖一批版式相似的图库/相册站（懒加载缩略图 + og:image 原图）。
+# 这些站的具体版式如有出入，可复制本文件改名后按站点微调选择器。
+# 仅当你对目标内容拥有合法采集权限时使用。
+name: generic-gallery
+base_url: https://www.pornpics.com
+allowed_domains:
+  - pornpics.com
+  - pornpics.center
+  - xx.knit.bid
+  - knit.bid
+  - legs-a-hadaka.jp
+  - hadaka.jp
+  - pimpandhost.com
+  - viralporn.com
+  - ososedki.com
+  - everia.club
+  - girlstop.info
+  - balbums.st
+  - xchina.co
+  - suuss.uk
+  - naiquan05.com
+  - xsijishe.com
+  - erome.com
+  - qo314877tw.com
+  - pichunter.com
+  - spankbang.com
+  - cosplaytele.com
+
+# 列表页：相册/图集链接（通用模式）
+list_page_selectors:
+  albums:
+    kind: css
+    expr: "a[href*='gallery'], a[href*='album'], a[href*='photos'], a[href*='pict']"
+    attr: href
+
+# 图片：懒加载属性优先，og:image 自动转原图（引擎内置提取）
+image_link_selectors:
+  - kind: css
+    expr: "img[data-src]"
+    attr: data-src
+  - kind: css
+    expr: "img[data-lazy-src]"
+    attr: data-lazy-src
+  - kind: css
+    expr: "img[data-original]"
+    attr: data-original
+  - kind: css
+    expr: "img[src*='thumb']"
+    attr: src
+  - kind: css
+    expr: "img[src*='/medium'], img[src*='/small']"
+    attr: src
+
+# 已知缩略图→原图主机替换（常见规律，命中才生效）
+image_url_replace:
+  - from: "/thumbs/"
+    to: "/"
+
+max_depth: 2

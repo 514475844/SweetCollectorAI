@@ -1,0 +1,30 @@
+# pictoa.com 适配器规则
+# 仅当你对目标内容拥有合法采集权限时使用（GUI 的「授权站点」会记录依据）。
+# 本规则不会绕过任何访问控制。
+name: pictoa
+base_url: https://www.pictoa.com
+allowed_domains: [pictoa.com, t1.pictoa.com, s2.pictoa.com]
+
+# 列表页：相册链接
+list_page_selectors:
+  albums:
+    kind: css
+    expr: "a[href*='/albums/']"
+    attr: href
+
+# 相册页：图片是懒加载，真实地址在 data-lazy-src（src 是 /img/1.png 占位图）
+image_link_selectors:
+  - kind: css
+    expr: "img[data-lazy-src*='/media/galleries/']"
+    attr: data-lazy-src
+  - kind: css
+    expr: "img[src*='/media/galleries/']"
+    attr: src
+
+# 关键：t1. 主机是缩略图(~20KB)，同路径的 s2. 主机是原图(~100KB+)
+image_url_replace:
+  - from: "t1.pictoa.com"
+    to: "s2.pictoa.com"
+
+# 建议最大深度 2：入口页 -> 相册页
+max_depth: 2

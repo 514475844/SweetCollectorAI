@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Sweet采集助手",
+  "version": "1.1.0",
+  "description": "一键把当前网站的 Cookie（含 cf_clearance 等 httpOnly）发送到 Sweet采集AI版；也可复制 Cookie/UA/Token 手动粘贴。",
+  "permissions": [
+    "cookies",
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Sweet采集助手：点开一键复制 Cookie/UA/Token",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

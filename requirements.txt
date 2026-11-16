@@ -1,0 +1,41 @@
+# Media Resource Manager - runtime dependencies
+# Pinned loosely; tested on Python 3.11+
+PySide6>=6.6            # GUI + tray (optional if running headless CLI)
+httpx>=0.27             # async HTTP client
+# ⚠ R48/D：SOCKS 代理支持。httpx 的 socks5 **不是内置**的，缺了 socksio
+# 会在 `AsyncClient(proxy="socks5://…")` 构造时抛 ImportError；而打包环境
+# 里没有它，于是用户填 SOCKS 代理一点「开始任务」整个任务崩停 + 冒英文。
+# `httpx[socks]` 等价于 `httpx + socksio`，这里显式列出 socksio，
+# 保证它进 `_internal`（配合 build/mrm.spec 的 hiddenimports）。
+socksio>=1.0             # SOCKS5 代理传输（httpx[socks] 的底层组件）
+beautifulsoup4>=4.12    # CSS selectors
+lxml>=5.2               # XPath + fast parsing
+PyYAML>=6.0             # YAML adapter rules
+loguru>=0.7             # structured logging
+Pillow>=10.0            # image format handling / sizing
+imagehash>=4.3          # perceptual hashing (pHash/dHash/aHash)
+# 2026-10-26：**必需**——引擎的 gallery-dl 快路径靠 `import gallery_dl`
+# 做 supports() 离线判定；venv 缺它时 PyInstaller 也捆不进去，
+# 后果是 exe 里快路径全程瘫痪（danbooru/gelbooru/pornpics 全部退化成 BFS）。
+segno>=1.6               # Web 扫码登录二维码（webui 懒加载 make()；缺了 QR 接口 500）
+gallery-dl>=1.32.16     # 站点提取器库（快路径内核，另有独立 exe 作子进程）
+cryptography>=42.0      # R152-E6：config.json 敏感字段(web_password/ai_api_key)落盘加密(Fernet)。
+                        # ⚠ 缺它时 security.config_secrets 会静默降级成明文直写(config.key 不建)，
+                        #   "加密"功能形同虚设 —— 必须列为硬依赖，别只靠惰性 import。
+# ⚠ R47/B6b：下面两个**曾经是注释掉的**，于是「捆绑的 CLIP 从来没被用上」——
+# 真机表现为任务一启动就提示「本地 AI 处于降级状态」（标签为空）。
+# 根因实测：`clip_onnx.py` 构造时要 `import onnxruntime` + `from tokenizers
+# import Tokenizer`，两者缺任一 → 构造抛异常 → `_pick_backend` 直接落 stub。
+# 就算 bundled_models/clip-vit-b32（153MB）随包带着也用不了。
+# 现在正式列为依赖，打包才会把这两个带进 _internal。
+# V0.0.34：Windows 桌面包自带显卡加速。DirectML 版同时提供 DmlExecutionProvider
+# 与 CPUExecutionProvider，没有 D3D12 的机器自动回退 CPU，不影响纯 CPU 推理。
+# ⚠ 绝不能与 onnxruntime（CPU 版）同时安装：两者都往 onnxruntime/capi 写 DLL，
+#   后装的会覆盖前者，显卡后端会莫名消失。Linux / ARM 仍走 CPU 版。
+onnxruntime>=1.17; sys_platform != "win32"
+onnxruntime-directml==1.24.4; sys_platform == "win32"
+tokenizers>=0.15          # CLIP 分词器（clip_onnx._load_tokenizer 依赖）
+# opencv-python>=4.9      # 仍为可选：只用于 SSIM 聚类
+
+# Dev / test
+pytest>=8.0

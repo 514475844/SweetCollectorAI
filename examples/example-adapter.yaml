@@ -1,0 +1,40 @@
+# Example adapter template (user-supplied; the tool ships NO built-in sites).
+# Copy this, fill in YOUR authorized site, and import with:  mrm add-rule this.yaml
+name: my-gallery
+base_url: https://your-authorized-site.example/gallery
+allowed_domains:
+  - your-authorized-site.example
+entry_urls:
+  - https://your-authorized-site.example/gallery
+list_page_selectors:        # list pages -> album/section links
+  albums:
+    kind: css
+    expr: "a.album-link"
+    attr: href
+album_link_selectors:       # album pages -> image pages
+  photos:
+    kind: css
+    expr: "a.photo"
+    attr: href
+image_page_selectors: {}    # optional extra page-type hints
+image_link_selectors:       # actual image URLs on image/album pages
+  - kind: css
+    expr: "img"
+    attr: src
+  - kind: css
+    expr: "img"
+    attr: data-original
+next_page_selectors:        # pagination / lazy-load public links
+  next:
+    kind: css
+    expr: "a.pagination-next"
+    attr: href
+original_image_attrs:       # prefer highest-res public version
+  - src
+  - data-original
+  - data-src
+max_depth: 3
+delay: 1.5                  # polite per-host delay (seconds)
+concurrency: 3
+proxy: null                 # legal network only; null = direct
+note: "I own/operate this gallery and its robots.txt permits crawling."

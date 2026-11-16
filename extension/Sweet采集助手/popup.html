@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --accent:#8b7cf8; --accent2:#9d8cff; --bg:#17161f; --card:#211f2c; --tx:#e8e6f2; --mut:#9a97ad; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { width:340px; background:var(--bg); color:var(--tx);
+         font:13px/1.5 "Microsoft YaHei",system-ui,sans-serif; }
+  header { padding:12px 14px 8px; }
+  header h1 { font-size:15px; color:var(--accent2); }
+  header .site { color:var(--mut); font-size:12px; margin-top:2px;
+                 word-break:break-all; }
+  main { padding:0 14px 12px; }
+  button { display:block; width:100%; margin:6px 0; padding:9px 10px;
+           border:1px solid #37344a; border-radius:8px; cursor:pointer;
+           background:var(--card); color:var(--tx); font-size:13px; text-align:left; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); border-color:var(--accent);
+                   color:#fff; font-weight:bold; text-align:center; }
+  button.primary:hover { background:var(--accent2); }
+  .row { display:flex; gap:6px; }
+  .row button { flex:1; text-align:center; }
+  .find { display:flex; gap:6px; margin:6px 0; }
+  .find input { flex:1; padding:8px 9px; border:1px solid #37344a;
+                border-radius:8px; background:#1b1a25; color:var(--tx); outline:none; }
+  .find input:focus { border-color:var(--accent); }
+  .find button { width:auto; margin:0; padding:8px 12px; text-align:center; }
+  #hits { margin:2px 0 6px; }
+  #hits button { padding:6px 9px; font-size:12px; font-family:Consolas,monospace; }
+  #status { min-height:18px; color:var(--mut); font-size:12px; margin:2px 0 6px; }
+  #status.ok { color:#4ade80; } #status.err { color:#f87171; }
+  .cfg { display:flex; gap:6px; margin:6px 0; }
+  .cfg input { flex:1; min-width:0; padding:7px 8px; border:1px solid #37344a;
+               border-radius:8px; background:#1b1a25; color:var(--tx);
+               font:12px Consolas,monospace; outline:none; }
+  .cfg input:focus { border-color:var(--accent); }
+  .cfg button { width:auto; margin:0; padding:7px 10px; text-align:center;
+                font-size:12px; }
+  .hint { color:var(--mut); font-size:11px; line-height:1.45; margin:2px 0 4px; }
+  footer { padding:8px 14px 12px; border-top:1px solid #2a2838;
+           color:var(--mut); font-size:11px; }
+  footer b { color:var(--accent2); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sweet采集助手</h1>
+  <div class="site" id="site">读取当前标签页…</div>
+</header>
+<main>
+  <button class="primary" id="b_push">🚀 发送到 Sweet 采集（推荐）</button>
+  <div class="cfg">
+    <input id="srv" placeholder="http://127.0.0.1:8080" title="软件地址（本机默认端口 8080；装在 NAS 上就填那台的地址）">
+    <input id="code" placeholder="配对码" maxlength="12" title="在软件里：设置 → 站点 Cookie → 6 位配对码">
+    <button id="b_save">保存</button>
+  </div>
+  <div class="hint" id="cfghint">
+    第一次用：先在软件里打开「设置 → 站点 Cookie」拿到 6 位配对码，填到上面点保存。
+    之后在这个网站的页面上点一下「发送到 Sweet 采集」就行。
+  </div>
+  <button id="b_cookie">📋 复制整串 Cookie（含 cf_clearance）</button>
+  <div class="row">
+    <button id="b_ua">复制 User-Agent</button>
+    <button id="b_url">复制网址</button>
+  </div>
+  <div class="row">
+    <button id="b_ls">复制 localStorage</button>
+    <button id="b_ss">复制 sessionStorage</button>
+  </div>
+  <div class="find">
+    <input id="key" placeholder="按键名找 Token，如 token / session / auth">
+    <button id="b_find">查找</button>
+  </div>
+  <div id="hits"></div>
+  <div id="status"></div>
+</main>
+<footer>发送后 Cookie 按<b>域名</b>存在软件里，这个站的所有任务自动带上。
+  复制那条是备用：软件不在同一台机器、或想手动粘到某个任务上时用。</footer>
+<script src="popup.js"></script>
+</body>
+</html>

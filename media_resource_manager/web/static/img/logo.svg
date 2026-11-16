@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Sweet采集AI版">
+  <!-- Web 端统一 logo（B1 #46）。刻意做成**圆角方块 + 白字"Sweet"**：
+       原 resources/logo.png 是「白底 + 带光晕的描边字」，直接缩到 22px 的
+       顶栏小图标里会糊成一团白（描边比笔画还粗）。所以这里另画一版矢量，
+       小尺寸（22px 顶栏）到大尺寸（512px PWA 图标）都清晰。 -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#5b3fd6"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#g)"/>
+  <!-- 内描边：让浅色背景上也能看清方块边界 -->
+  <rect x="9" y="9" width="238" height="238" rx="55" fill="none"
+        stroke="rgba(255,255,255,.35)" stroke-width="2"/>
+  <text x="128" y="118" text-anchor="middle"
+        font-family="Segoe UI, Microsoft YaHei, sans-serif"
+        font-size="72" font-weight="700" fill="#ffffff">Sweet</text>
+  <text x="128" y="176" text-anchor="middle"
+        font-family="Segoe UI, Microsoft YaHei, sans-serif"
+        font-size="34" font-weight="600" fill="rgba(255,255,255,.82)">采集 AI 版</text>
+</svg>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sweet 采集 AI 版 · 本地优先的图库管理工具</title>
+<meta name="description" content="本地优先、合规优先的网页图片采集与图库管理工具：双路径采集、本地 AI 筛选、偏好学习、多协议导入，数据全部留在自己的电脑。">
+<style>
+:root{
+  --bg:#0b0d14; --bg2:#11141f; --panel:#161a28; --panel2:#1c2132;
+  --line:#252b3d; --txt:#e8ebf5; --sub:#9aa3bd; --muted:#6f7893;
+  --brand:#7c5cff; --brand2:#4f8cff; --mint:#3ddc97; --amber:#ffb648;
+  --radius:16px; --maxw:1120px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  line-height:1.7; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* 背景光晕 */
+.glow{position:absolute;border-radius:50%;filter:blur(120px);opacity:.35;pointer-events:none;z-index:0}
+.glow.a{width:520px;height:520px;background:#5b3cff;top:-180px;left:-120px}
+.glow.b{width:460px;height:460px;background:#1e6fff;top:220px;right:-160px;opacity:.25}
+
+/* 导航 */
+header{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);
+  background:rgba(11,13,20,.78);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+.logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:17px;letter-spacing:.3px}
+.logo .mark{width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));
+  display:grid;place-items:center;box-shadow:0 6px 20px rgba(124,92,255,.4)}
+.logo .mark svg{width:19px;height:19px}
+.menu{display:flex;gap:30px;font-size:14px;color:var(--sub)}
+.menu a{transition:color .2s}
+.menu a:hover{color:var(--txt)}
+.nav-cta{display:flex;gap:12px;align-items:center}
+
+/* 按钮 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;
+  transition:transform .18s,box-shadow .18s,background .18s;cursor:pointer;border:1px solid transparent}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+  box-shadow:0 8px 24px rgba(124,92,255,.34)}
+.btn.primary:hover{box-shadow:0 12px 30px rgba(124,92,255,.5)}
+.btn.ghost{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+.btn.ghost:hover{background:#242a3d}
+.btn.sm{padding:8px 15px;font-size:13px}
+.btn svg{width:16px;height:16px}
+
+/* Hero */
+.hero{position:relative;padding:90px 0 60px;overflow:hidden}
+.hero-inner{position:relative;z-index:1;text-align:center}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:100px;
+  background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.3);
+  color:#b9a8ff;font-size:13px;font-weight:600;margin-bottom:26px}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px var(--mint)}
+h1{font-size:clamp(38px,6vw,64px);line-height:1.15;font-weight:850;letter-spacing:-1px;margin-bottom:22px}
+h1 .grad{background:linear-gradient(120deg,#a78bfa,#5b9cff 60%,#3ddc97);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{max-width:660px;margin:0 auto 34px;font-size:18px;color:var(--sub)}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:54px}
+.shot{position:relative;max-width:960px;margin:0 auto;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--panel);overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(124,92,255,.1)}
+.shot .bar{height:38px;background:#1a1e2c;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;padding:0 16px;gap:7px}
+.shot .bar i{width:11px;height:11px;border-radius:50%;display:block}
+.shot .bar i:nth-child(1){background:#ff5f57}.shot .bar i:nth-child(2){background:#febc2e}.shot .bar i:nth-child(3){background:#28c840}
+.shot .bar span{margin-left:14px;font-size:12px;color:var(--muted)}
+.shot img{display:block;width:100%;height:auto}
+
+/* 通用 section */
+section{padding:76px 0;position:relative}
+.sec-head{text-align:center;margin-bottom:48px}
+.eyebrow{color:var(--brand);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.sec-head h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.5px;margin-bottom:14px}
+.sec-head p{color:var(--sub);max-width:620px;margin:0 auto;font-size:16px}
+
+/* 特性卡 */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:linear-gradient(160deg,var(--panel),var(--bg2));border:1px solid var(--line);
+  border-radius:var(--radius);padding:28px 26px;transition:transform .22s,border-color .22s,box-shadow .22s}
+.card:hover{transform:translateY(-5px);border-color:rgba(124,92,255,.5);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+.icon{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:18px}
+.icon svg{width:23px;height:23px}
+.ic-purple{background:rgba(124,92,255,.14);color:#a78bfa}
+.ic-blue{background:rgba(79,140,255,.14);color:#6ea8ff}
+.ic-mint{background:rgba(61,220,151,.13);color:#4be3a3}
+.ic-amber{background:rgba(255,182,72,.13);color:#ffc46b}
+.ic-pink{background:rgba(255,105,150,.13);color:#ff87b0}
+.ic-cyan{background:rgba(60,210,215,.13);color:#5ddde0}
+.card h3{font-size:17px;margin-bottom:9px;font-weight:700}
+.card p{color:var(--sub);font-size:14px;line-height:1.75}
+
+/* 流程 */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px 18px;text-align:center;position:relative}
+.step .num{width:34px;height:34px;border-radius:50%;margin:0 auto 14px;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:14px}
+.step h4{font-size:15px;margin-bottom:6px}
+.step p{font-size:12.5px;color:var(--muted);line-height:1.6}
+.step:not(:last-child)::after{content:"";position:absolute;right:-11px;top:40px;width:9px;height:2px;background:var(--line)}
+
+/* 分流四态 */
+.lanes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:26px}
+.lane{border-radius:12px;padding:18px;border:1px solid var(--line);background:var(--bg2)}
+.lane .tag{font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.lane .tag i{width:9px;height:9px;border-radius:50%;display:block}
+.lane p{font-size:12.5px;color:var(--muted)}
+
+/* 硬件 */
+.hw{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tier{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 18px;text-align:center}
+.tier .chip{font-size:12px;color:var(--mint);font-weight:700;margin-bottom:8px}
+.tier h4{font-size:15px;margin-bottom:6px}
+.tier p{font-size:12.5px;color:var(--muted)}
+
+/* 开始步骤 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.gstep{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 16px;position:relative}
+.gstep .n{font-size:32px;font-weight:850;color:var(--line);line-height:1;margin-bottom:10px}
+.gstep h4{font-size:14px;margin-bottom:6px}
+.gstep p{font-size:12.5px;color:var(--muted)}
+
+/* 合规 */
+.compliance{background:linear-gradient(135deg,rgba(124,92,255,.09),rgba(79,140,255,.05));
+  border:1px solid var(--line);border-radius:20px;padding:40px}
+.compliance h2{font-size:26px;margin-bottom:20px}
+.comp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 32px}
+.comp-grid li{list-style:none;display:flex;gap:12px;align-items:flex-start;color:var(--sub);font-size:14.5px}
+.comp-grid svg{width:20px;height:20px;color:var(--mint);flex-shrink:0;margin-top:3px}
+
+/* CTA 底部 */
+.final{text-align:center;padding:80px 0}
+.final h2{font-size:clamp(30px,5vw,46px);font-weight:850;margin-bottom:16px;letter-spacing:-.5px}
+.final p{color:var(--sub);font-size:17px;margin-bottom:30px}
+.final .hero-actions{margin-bottom:0}
+
+/* 页脚 */
+footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-size:13px}
+.foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.foot a:hover{color:var(--txt)}
+
+/* 出现动画 */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s,transform .6s}
+.reveal.on{opacity:1;transform:none}
+
+/* 响应式 */
+@media(max-width:900px){
+  .features{grid-template-columns:repeat(2,1fr)}
+  .flow,.lanes,.hw{grid-template-columns:repeat(2,1fr)}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .menu{display:none}
+}
+@media(max-width:600px){
+  .features,.flow,.lanes,.hw,.steps,.comp-grid{grid-template-columns:1fr}
+  .hero{padding:60px 0 40px}
+  section{padding:54px 0}
+  .step:not(:last-child)::after{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="glow a"></div><div class="glow b"></div>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span>
+      Sweet 采集 AI 版
+    </a>
+    <nav class="menu">
+      <a href="#features">功能</a>
+      <a href="#workflow">工作原理</a>
+      <a href="#hardware">硬件适配</a>
+      <a href="#start">快速开始</a>
+      <a href="#compliance">合规</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn ghost sm" href="https://github.com/514475844/SweetCollectorAI">源码</a>
+      <a class="btn primary sm" href="#start">获取软件</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap hero-inner">
+    <div class="badge"><span class="dot"></span>本地优先 · 数据不出本机</div>
+    <h1>把网上的图，收进<br><span class="grad">自己的库</span></h1>
+    <p class="lead">一条可管的采集流水线：合规检查、自动去重、本地 AI 筛选、人工审核，最后沉淀成能搜、能看、能长期保存的图库。所有图片和判断都留在你的电脑上。</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#start">下载便携版
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </a>
+      <a class="btn ghost" href="https://github.com/514475844/SweetCollectorAI">在 GitHub 查看
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+    <div class="shot reveal">
+      <div class="bar"><i></i><i></i><i></i><span>Sweet 采集 AI 版 · 学习看板</span></div>
+      <img src="assets/screenshot-home.png" alt="软件主界面：学习看板">
+    </div>
+  </div>
+</div>
+
+<!-- 功能 -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Features</div>
+      <h2>一个工具，覆盖整条链路</h2>
+      <p>从发现到入库再到长期检索，每一步都有明确的控制和可见的反馈。</p>
+    </div>
+    <div class="features">
+      <div class="card reveal"><div class="icon ic-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3>双路径采集</h3><p>成熟下载器 gallery-dl 走主路，自研递归发现兜底自定义站点。CSS / XPath / 正则适配器，遇到新站点也能接住。</p></div>
+      <div class="card reveal"><div class="icon ic-mint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>合规门禁</h3><p>运行前检查 robots.txt 与授权依据；遇到需要登录或访问被拒时自动暂停交由人工确认，不绕过任何保护措施。</p></div>
+      <div class="card reveal"><div class="icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>精确 + 感知去重</h3><p>SHA256 精确比对叠加 pHash 感知比对，连改过尺寸和压缩的近似图也能认出。重复图进隔离区，不静默删除。</p></div>
+      <div class="card reveal"><div class="icon ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V12l6 3v2H4v-2l6-3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/><path d="M10 20h4"/></svg></div>
+        <h3>本地 AI 筛选</h3><p>CLIP ONNX 在本机给每张图打分：高分入库、拿不准的进审核、低分进隔离。没有模型时自动退化为不筛选，不误杀。</p></div>
+      <div class="card reveal"><div class="icon ic-pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg></div>
+        <h3>越用越准的偏好</h3><p>审核时的每次喜欢与不喜欢，都会累加成主题词权重。用得越久，判断越贴合你的口味，学到的排除词还能一键写回任务。</p></div>
+      <div class="card reveal"><div class="icon ic-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h3>桌面与手机同源</h3><p>桌面窗口与浏览器访问用的是同一套界面和同一个数据库。手机和平板也能看图、审核，添加到主屏幕就能当 App 用。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 工作流 -->
+<section id="workflow">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">How it works</div>
+      <h2>一张图的旅程</h2>
+      <p>每一步都可见、可控、可回退，不会在你不知情的时候替你做决定。</p>
+    </div>
+    <div class="flow">
+      <div class="step reveal"><div class="num">1</div><h4>入队与合规</h4><p>按优先级排队，核对 robots.txt 与授权依据</p></div>
+      <div class="step reveal"><div class="num">2</div><h4>采集下载</h4><p>选后端、限速、允许时段、代理，幂等断点续传</p></div>
+      <div class="step reveal"><div class="num">3</div><h4>去重与过滤</h4><p>黑名单、敏感词、体积上限、精确与感知去重</p></div>
+      <div class="step reveal"><div class="num">4</div><h4>AI 判定</h4><p>本地 CLIP 打分，高分 / 待审 / 隔离自动分流</p></div>
+    </div>
+    <div class="lanes">
+      <div class="lane reveal"><div class="tag"><i style="background:#3ddc97"></i>入库图库</div><p>判定明确的图，进去就能按任务、标签、分数、分辨率检索。</p></div>
+      <div class="lane reveal"><div class="tag"><i style="background:#ffb648"></i>待审核</div><p>拿不准的图集中到这里，键盘左右键单手判定，决策实时学习。</p></div>
+      <div class="lane reveal"><div class="tag"><i style="background:#4f8cff"></i>隔离区</div><p>低分或重复的先进隔离区，随时可以还原，不会直接消失。</p></div>
+      <div class="lane reveal"><div class="tag"><i style="background:#6f7893"></i>彻底删除</div><p>只有你明确点了删除才会发生，平时不会自动发生。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 硬件适配 -->
+<section id="hardware">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Hardware</div>
+      <h2>从核显到高性能显卡</h2>
+      <p>本地 AI 按能力分档适配，硬件决定的是速度与可选精度，而不是能否使用。</p>
+    </div>
+    <div class="hw">
+      <div class="tier reveal"><div class="chip">入门设备</div><h4>核显 / 无独显</h4><p>纯处理器推理可用，建议用小模型并降低并发。</p></div>
+      <div class="tier reveal"><div class="chip">主流配置</div><h4>入门独显</h4><p>各类显卡均可加速，日常筛选流畅运行。</p></div>
+      <div class="tier reveal"><div class="chip">进阶配置</div><h4>8 – 12 GB 显存</h4><p>独立显卡加速更佳，可选用更高精度的模型档位。</p></div>
+      <div class="tier reveal"><div class="chip">高性能</div><h4>大显存工作站</h4><p>大显存显卡适配，更高精度档与更大批量可发挥最佳效果。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 快速开始 -->
+<section id="start">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Get started</div>
+      <h2>五分钟跑起来</h2>
+      <p>便携版无需安装，解压即用；数据都在软件目录里，换机拷走整个文件夹即可。</p>
+    </div>
+    <div class="steps">
+      <div class="gstep reveal"><div class="n">01</div><h4>下载解压</h4><p>从 Releases 取压缩包，解压后双击主程序</p></div>
+      <div class="gstep reveal"><div class="n">02</div><h4>新建任务</h4><p>填一个网址，建议加上主题词</p></div>
+      <div class="gstep reveal"><div class="n">03</div><h4>保存并运行</h4><p>保存任务后点运行，底部看日志</p></div>
+      <div class="gstep reveal"><div class="n">04</div><h4>审核放行</h4><p>去审核页把拿不准的图判定一下</p></div>
+      <div class="gstep reveal"><div class="n">05</div><h4>图库检索</h4><p>按标签、分数、分辨率或画面特征找图</p></div>
+    </div>
+    <div style="text-align:center;margin-top:34px" class="reveal">
+      <a class="btn primary" href="https://github.com/514475844/SweetCollectorAI/releases">前往 Releases 下载
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 合规 -->
+<section id="compliance">
+  <div class="wrap">
+    <div class="compliance reveal">
+      <h2>能用，但要有边界</h2>
+      <p style="color:var(--sub);margin-bottom:24px">这是一个通用的本地采集与图库管理工具，不预置任何站点规则，也不提供绕过网站保护措施的能力。</p>
+      <ul class="comp-grid">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>不绕过登录、付费墙、DRM、验证码或地域限制</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>采集前检查 robots.txt 并要求填写授权依据</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>只对你有权访问的内容使用，遵守服务条款与当地法律</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>AI 与去重全部本地运行，不上传任何图片或文本</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 底部 CTA -->
+<div class="final wrap">
+  <h2 class="reveal">把收图这件事，交回给自己</h2>
+  <p class="reveal">开源、便携、本地优先。现在就下载试试。</p>
+  <div class="hero-actions reveal">
+    <a class="btn primary" href="#start">获取软件</a>
+    <a class="btn ghost" href="https://github.com/514475844/SweetCollectorAI/blob/main/CHANGELOG.md">查看更新公告</a>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>© 2026 Sweet 采集 AI 版 · MIT License</div>
+    <div><a href="https://github.com/514475844/SweetCollectorAI">GitHub</a> · <a href="https://github.com/514475844/SweetCollectorAI/blob/main/CHANGELOG.md">更新公告</a> · <a href="#top">回到顶部</a></div>
+  </div>
+</footer>
+
+<script>
+const io=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}})
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%6*50)+'ms';io.observe(el)});
+</script>
+</body>
+</html>

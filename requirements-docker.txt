@@ -1,0 +1,32 @@
+# requirements-docker.txt —— 容器 runtime 依赖
+# 取舍原则：去掉一切 GUI/PySide6（无头容器不需要，且会直接撑爆 C3 的 <1.5GB
+# 体积目标），其余与 requirements.txt 对齐。
+# 注意：这是**容器专用**清单，桌面端继续用 requirements.txt，两边互不影响。
+
+httpx>=0.27
+socksio>=1.0              # httpx 的 socks5 传输层，缺了填 SOCKS 代理会崩
+beautifulsoup4>=4.12
+lxml>=5.2
+PyYAML>=6.0
+loguru>=0.7
+Pillow>=10.0
+imagehash>=4.3
+onnxruntime>=1.17         # USE_GPU=0（默认）走这个；=1 时 Dockerfile 换 onnxruntime-gpu
+tokenizers>=0.15
+gallery-dl>=1.32.16        # B4：容器内真实二进制。版本下限 = R105 实测构建版本
+                          #（1.32.16 打 PyInstaller onefile，隔离目录 --version +
+                          # --list-extractors 4905 行注册表冒烟通过）；真机
+                          # `gallery-dl --version` 复核后可上调。校验方法见
+                          # docker/README.md「常见问题 → 如何确认 gallery-dl 版本」。
+
+# —— 明确不装 ——
+# PySide6：无头容器不需要，且体积极大。
+#   R97 审计：无头主链路顶层无 PySide6；唯一越界 crawler/adapter_proposer.py
+#   是延迟引用，只在 gui/main_window.py 里被用到。
+#   ⇒ 配一条护栏测试断言 "PySide6" not in sys.modules（tests/test_r74_docker_headless.py）。
+# pytest / 其它 dev 依赖：不进 runtime 镜像。
+
+# 2026-10-26 补齐（无头链路实际用到、但原清单漏了）：
+segno>=1.6                # Web 扫码登录的二维码 SVG（webui.py 懒加载 make()）
+cryptography>=42.0         # config.json 敏感字段加密（security/config_secrets.py）
+numpy>=1.26               # clip_onnx 直接 import numpy（onnxruntime 会带，但显式声明）
