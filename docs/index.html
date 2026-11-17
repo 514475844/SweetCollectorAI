@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sweet 采集 AI 版 · 本地优先的图库管理工具</title>
-<meta name="description" content="本地优先、合规优先的网页图片采集与图库管理工具：双路径采集、本地 AI 筛选、偏好学习、多协议导入，数据全部留在自己的电脑。">
+<meta name="description" content="本地优先的网页图片采集与图库管理工具：双路径采集、本地 AI 筛选、偏好学习、多协议导入，数据全部留在自己的电脑。">
 <style>
 :root{
   --bg:#0b0d14; --bg2:#11141f; --panel:#161a28; --panel2:#1c2132;
@@ -183,7 +183,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-s
       <a href="#workflow">工作原理</a>
       <a href="#hardware">硬件适配</a>
       <a href="#start">快速开始</a>
-      <a href="#compliance">合规</a>
+      <a href="#compliance">使用边界</a>
     </nav>
     <div class="nav-cta">
       <a class="btn ghost sm" href="https://github.com/514475844/SweetCollectorAI">源码</a>
@@ -199,7 +199,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-s
   <div class="wrap hero-inner">
     <div class="badge"><span class="dot"></span>本地优先 · 数据不出本机</div>
     <h1>把网上的图，收进<br><span class="grad">自己的库</span></h1>
-    <p class="lead">一条可管的采集流水线：合规检查、自动去重、本地 AI 筛选、人工审核，最后沉淀成能搜、能看、能长期保存的图库。所有图片和判断都留在你的电脑上。</p>
+    <p class="lead">一条可管的采集流水线：自动去重、本地 AI 筛选、人工审核，最后沉淀成能搜、能看、能长期保存的图库。所有图片和判断都留在你的电脑上。</p>
     <div class="hero-actions">
       <a class="btn primary" href="#start">下载便携版
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -227,7 +227,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-s
       <div class="card reveal"><div class="icon ic-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
         <h3>双路径采集</h3><p>成熟下载器 gallery-dl 走主路，自研递归发现兜底自定义站点。CSS / XPath / 正则适配器，遇到新站点也能接住。</p></div>
       <div class="card reveal"><div class="icon ic-mint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <h3>合规门禁</h3><p>运行前检查 robots.txt 与授权依据；遇到需要登录或访问被拒时自动暂停交由人工确认，不绕过任何保护措施。</p></div>
+        <h3>采集保护</h3><p>可配置 robots.txt 检查；遇到需要登录或访问被拒时自动暂停并给出原因，确认后可继续。</p></div>
       <div class="card reveal"><div class="icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg></div>
         <h3>精确 + 感知去重</h3><p>SHA256 精确比对叠加 pHash 感知比对，连改过尺寸和压缩的近似图也能认出。重复图进隔离区，不静默删除。</p></div>
       <div class="card reveal"><div class="icon ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V12l6 3v2H4v-2l6-3V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z"/><path d="M10 20h4"/></svg></div>
@@ -249,7 +249,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-s
       <p>每一步都可见、可控、可回退，不会在你不知情的时候替你做决定。</p>
     </div>
     <div class="flow">
-      <div class="step reveal"><div class="num">1</div><h4>入队与合规</h4><p>按优先级排队，核对 robots.txt 与授权依据</p></div>
+      <div class="step reveal"><div class="num">1</div><h4>入队与调度</h4><p>按优先级排队，限速与并发受控</p></div>
       <div class="step reveal"><div class="num">2</div><h4>采集下载</h4><p>选后端、限速、允许时段、代理，幂等断点续传</p></div>
       <div class="step reveal"><div class="num">3</div><h4>去重与过滤</h4><p>黑名单、敏感词、体积上限、精确与感知去重</p></div>
       <div class="step reveal"><div class="num">4</div><h4>AI 判定</h4><p>本地 CLIP 打分，高分 / 待审 / 隔离自动分流</p></div>
@@ -311,8 +311,8 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-s
       <p style="color:var(--sub);margin-bottom:24px">这是一个通用的本地采集与图库管理工具，不预置任何站点规则，也不提供绕过网站保护措施的能力。</p>
       <ul class="comp-grid">
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>不绕过登录、付费墙、DRM、验证码或地域限制</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>采集前检查 robots.txt 并要求填写授权依据</span></li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>只对你有权访问的内容使用，遵守服务条款与当地法律</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>可配置 robots.txt 检查，按你的使用场景自定松紧</span></li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>使用者需自行对目标网站的服务条款与当地法规负责</span></li>
         <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>AI 与去重全部本地运行，不上传任何图片或文本</span></li>
       </ul>
     </div>
