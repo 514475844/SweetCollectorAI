@@ -1,0 +1,265 @@
+/* 新版 Web 的全局样式：浅色、克制、可读优先。
+   老 SPA 的 1086 行 CSS 不搬——它绑定了旧 DOM 结构；这里按新版组件重写。 */
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --line: #e6e8f0;
+  --text: #1f2430;
+  --muted: #6b7280;
+  --brand: #6b4cf0;
+  --brand-2: #8c6bff;
+  --ok: #16a34a;
+  --warn: #d97706;
+  --err: #dc2626;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+  /* V0.0.33：全局动效的节奏统一走这几个量，避免各处各写各的 .15s/.3s，
+     快慢不一看起来像拼起来的。 */
+  --dur-fast: .14s;
+  --dur: .22s;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+  --shadow-hover: 0 2px 4px rgba(16, 24, 40, .05), 0 14px 34px rgba(16, 24, 40, .10);
+}
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; cursor: pointer; }
+a { color: var(--brand); text-decoration: none; }
+.btn {
+  border: 1px solid var(--line); background: #fff; color: var(--text);
+  padding: 7px 14px; border-radius: 9px;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+  /* 2026-10-28：按钮里现在有图标了，统一成 inline-flex 才能对齐、才有图标间距。
+     纯文字按钮照样正常（没有子元素就不产生 gap）。 */
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  line-height: 1.35;
+}
+.btn:has(> .icon:only-child) { padding-left: 9px; padding-right: 9px; }
+.btn:hover { border-color: #cfd4e3; background: #fbfbfe; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.primary:hover { background: var(--brand-2); border-color: var(--brand-2); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.pill { padding: 2px 9px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); }
+.pill.ok   { color: var(--ok);   border-color: #c7efd5; background: #f2fdf6; }
+.pill.warn { color: var(--warn); border-color: #fde3c2; background: #fffaf2; }
+.pill.err  { color: var(--err);  border-color: #fbd5d5; background: #fff6f6; }
+.pill.muted{ color: var(--muted); }
+.muted { color: var(--muted); }
+
+/* V0.0.46：「一行控件 + 说明」的通用横排。CookieMgr / DiskMaint / ImageGrid /
+   Adapters / Models 都用了 class="inline" 但只有个别页面各自 scoped 定义过，
+   没定义的页面里按钮、输入框、说明文字全部贴死（用户报「新建规则和导入本地
+   规则中间没空开」）。收到全局层，各页的 scoped 定义仍优先生效、不受影响。 */
+.inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+label { font-size: 13px; color: var(--muted); }
+/* V0.0.35：不带 type 的 <input> 默认也是文本框，但属性选择器匹配不到，
+   于是适配器 / 订阅 / Cookie / 重命名等处的输入框一直是浏览器原生样式
+   （高度 21px、无圆角、无内边距），跟页面里其他框并排时明显不对。
+   这里把「没写 type 的 input」和 textarea 一起收进统一口径。 */
+input:not([type]), input[type="text"], input[type="password"],
+input[type="number"], input[type="search"], select, textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 9px; background: #fff; color: var(--text); font: inherit;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid #ddd6ff; border-color: var(--brand-2);
+}
+
+/* 2026-10-27（编号 1）：列表斑马纹。
+   qB 的「使用交替的行颜色」在采集软件里同样有用 —— 任务/日志这种一行
+   十几个字段的表，没有条纹时横向串行非常容易看错。
+   只对"行容器"生效（.tr / tbody tr），不碰卡片网格；颜色用主题变量，
+   换皮肤时自动跟着变。 */
+.tr:nth-child(even),
+tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--line) 32%, transparent);
+}
+.tr:hover, tbody tr:hover {
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+
+/* V0.0.21 · 桌面窗口模式：界面文字不是网页文档，不该被整片拖蓝。
+   只允许输入框、日志、代码、尺寸 / 网址等可复制区域选中文字。
+   普通浏览器访问时 html 上没有 .mrm-native，规则完全不生效。 */
+html.mrm-native body { user-select: none; -webkit-user-select: none; }
+html.mrm-native input,
+html.mrm-native textarea,
+html.mrm-native [contenteditable="true"],
+html.mrm-native pre,
+html.mrm-native code,
+html.mrm-native .mono,
+html.mrm-native .log-line,
+html.mrm-native .log-body,
+html.mrm-native .selectable,
+html.mrm-native .gs-label,
+html.mrm-native .keyin {
+  user-select: text; -webkit-user-select: text;
+}
+html.mrm-native img,
+html.mrm-native a { -webkit-user-drag: none; user-drag: none; }
+/* 浏览器链接高亮与焦点框：桌面窗口里按钮与导航由软件皮肤统一呈现 */
+html.mrm-native a { outline: none; }
+html.mrm-native ::selection { background: color-mix(in srgb, var(--brand) 26%, transparent); }
+
+/* ================================================================
+   V0.0.33 · 交互质感层（功能不变，只补「看得见的反馈」）
+   三条硬约束，改这一段之前先看完：
+   ① 页面进入只做透明度，绝不给 .page 常驻 transform —— 祖先一旦有
+      transform，页面里 position:fixed / sticky 的吸底保存条会改以它为
+      包含块，整条跑到错误位置（v0.0.28 刚修好的块缝也会跟着乱）。
+   ② keyframes 的 to 帧一律写 transform: none，且弹窗 animation 不带
+      fill-mode —— 动画播完元素回到自身样式，Vue <Transition> 的离场
+      transition 才不会被 animation 的填充值压住。
+   ③ 所有动效都要能被「系统减少动效」一键关掉（文件末尾的媒体查询）。
+   ================================================================ */
+
+/* 1. 页面切换：淡入 */
+@keyframes mrm-page-in { from { opacity: 0 } to { opacity: 1 } }
+.page { animation: mrm-page-in var(--dur) var(--ease) both; }
+
+/* 2. 卡片：悬停轻微抬起 + 阴影加深。弹窗面板不算「可悬停的卡片」，排除掉，
+      否则鼠标在对话框里移动时整块会跟着抖。 */
+.card {
+  transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.mask .card:hover, .modal:hover, .dlg:hover { box-shadow: var(--shadow); transform: none; }
+
+/* 3. 按钮按压反馈：按下去缩一点点，禁用态不参与 */
+.btn:active:not(:disabled) { transform: scale(.975); }
+.btn:disabled:active { transform: none; }
+
+/* 4. 键盘焦点环：鼠标单击不出现，Tab 走到才出现（桌面窗口里也要看得见） */
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible,
+select:focus-visible, input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--brand-2); outline-offset: 2px;
+}
+html.mrm-native a:focus-visible { outline: 2px solid var(--brand-2); outline-offset: 2px; }
+
+/* 5. 滚动条：细、圆角、半透明；悬停才加深，不抢内容注意力 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+  border: 2px solid transparent; background-clip: padding-box; border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--brand) 48%, transparent);
+  background-clip: padding-box;
+}
+* { scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted) 32%, transparent) transparent; }
+
+/* 6. 弹窗：遮罩淡入 + 背景轻微虚化；面板上浮淡入。
+      注意 animation 不写 fill-mode，播完即回到原样式，下面 <Transition>
+      的离场才有机会生效（这是能同时兼容「没包 Transition 的老弹窗」和
+      「包了 Transition 的新弹窗」的关键）。 */
+@keyframes mrm-mask-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes mrm-pop-in {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+.mask {
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  animation: mrm-mask-in .18s var(--ease);
+}
+.modal, .dlg { animation: mrm-pop-in .24s var(--ease); }
+.modal, .dlg { box-shadow: 0 18px 56px rgba(16, 24, 40, .22); }
+
+/* 7. Vue <Transition> 的统一进出场：name="dlg" 用于弹窗，name="pop" 用于浮层 */
+.dlg-enter-active, .dlg-leave-active { transition: opacity .18s var(--ease); }
+.dlg-enter-from, .dlg-leave-to { opacity: 0; }
+.dlg-enter-active .modal, .dlg-enter-active .dlg,
+.dlg-leave-active .modal, .dlg-leave-active .dlg {
+  transition: transform .2s var(--ease), opacity .2s var(--ease);
+}
+.dlg-enter-from .modal, .dlg-enter-from .dlg { transform: translateY(12px) scale(.985); opacity: 0; }
+.dlg-leave-to .modal, .dlg-leave-to .dlg { transform: translateY(8px) scale(.99); opacity: 0; }
+.pop-enter-active, .pop-leave-active {
+  transition: opacity .16s var(--ease), transform .16s var(--ease);
+}
+.pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(-6px) scale(.985); }
+
+/* 8. 空态：统一成一块淡底提示区，不再是孤零零一行灰字 */
+.empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; margin: 0; padding: 26px 16px; text-align: center;
+  color: var(--muted); font-size: 13px;
+  border: 1px dashed var(--line); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+  animation: mrm-page-in var(--dur) var(--ease) both;
+}
+.empty::before {
+  content: ""; width: 30px; height: 30px; border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, transparent);
+}
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 28px 16px; text-align: center; color: var(--muted);
+  border: 1px dashed var(--line); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+}
+.empty-state .es-ic {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+.empty-state .es-title { color: var(--text); font-size: 14px; font-weight: 600; }
+.empty-state .es-desc { font-size: 12.5px; max-width: 420px; line-height: 1.7; }
+.empty-state .btn { margin-top: 4px; }
+
+/* 9. 加载骨架：替代「读取中」那种干等，条纹缓慢扫过 */
+@keyframes mrm-shimmer {
+  from { background-position: -200% 0 } to { background-position: 200% 0 }
+}
+.skeleton {
+  border-radius: 8px;
+  /* 用主题变量混色，深色皮肤下不会突然冒出一块亮白 */
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--line) 85%, transparent) 25%,
+    color-mix(in srgb, var(--panel) 78%, var(--line)) 50%,
+    color-mix(in srgb, var(--line) 85%, transparent) 75%);
+  background-size: 200% 100%; animation: mrm-shimmer 1.5s linear infinite;
+}
+.skeleton-box { padding: 14px 16px; border: 1px solid var(--line);
+                border-radius: var(--radius); background: var(--panel); }
+.skeleton-line { height: 13px; margin-bottom: 10px; }
+.skeleton-line:nth-child(1) { width: 92%; }
+.skeleton-line:nth-child(2) { width: 76%; }
+.skeleton-line:nth-child(3) { width: 84%; }
+
+/* 10. 页签（设置 / 导入与导出共用）：切换时底色渐变 + 选中的下划线展开 */
+.tab {
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.tab:active { transform: scale(.97); }
+@keyframes mrm-tab-underline { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+.tab.on::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 1px; height: 2px;
+  border-radius: 999px; background: var(--brand);
+  transform-origin: center; pointer-events: none;
+  animation: mrm-tab-underline .26s var(--ease) forwards;
+}
+
+/* 11. 无障碍：系统开了「减少动效」时，上面全部收成瞬时完成 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}

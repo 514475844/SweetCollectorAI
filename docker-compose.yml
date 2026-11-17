@@ -1,0 +1,64 @@
+# docker-compose.yml —— 挂机部署（订单 D1–D5）
+# 目标平台：x86_64 Linux（飞牛 FnOS / Debian / Ubuntu）。用法见 docker/README.md。
+
+services:
+  mrm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # C5：默认 0 = CPU 版 onnxruntime；改成 1 走 onnxruntime-gpu + CUDA
+        USE_GPU: "0"
+    image: mrm:x86_64
+    container_name: mrm
+    # D4：挂机场景必需（断电/崩溃后自动拉起）
+    restart: unless-stopped
+    # D2：宿主端口可改（左边是宿主端口）
+    ports:
+      - "8080:8080"
+    # D1：卷映射。★ 存储池路径按你的机器改（飞牛 FnOS 见 docker/README.md 第二节）
+    volumes:
+      - ./data:/data            # 数据总目录：数据库、配置、任务、日志、模型
+      - ./library:/data/library # 图库（采集落盘）
+      - ./cache:/data/cache    # 缓存（缩略图等）。必须落 /data/cache：
+                              # 代码里缓存目录 = user_data_dir()/cache，
+                              # 容器中 MRM_HOME=/data ⇒ /data/cache。
+                              # 旧写法 ./cache:/cache 挂了个没人用的死路径，
+                              # 缓存全落容器可写层，删容器即丢还撑大镜像层。
+    environment:
+      # ── A4 环境变量覆盖（D3：齐全 + 中文注释）─────────────────────
+      # ★ 数据目录：不设会落到 /app/data（容器可写层），删容器即丢
+      MRM_HOME: /data
+      # Web 监听地址：程序默认 127.0.0.1，容器里必须 0.0.0.0 否则宿主连不进
+      MRM_WEB_BIND: "0.0.0.0"
+      # Web 端口（容器内）
+      MRM_WEB_PORT: "8080"
+      # Web 登录用户名（兼容保留）。R105 后不参与鉴权：Basic Auth 用户名固定
+      # admin，只有密码管事；改这个值不影响登录
+      MRM_WEB_USER: "admin"
+      # Web 密码。留空 = 私网免密（本机/局域网直连，公网仍拦；R157 起不再
+      # 自动生成密码写回 config.json）。公网/反代暴露时务必显式设置。
+      MRM_WEB_PASSWORD: ""
+      # 同时运行的任务数
+      MRM_PARALLEL: "3"
+      # 局域网免密。程序默认 False（R152-E5）；容器里经网桥（172.17.x.x，
+      # 本身就是私有段）会让免密判定错乱 ⇒ 这里显式关掉兜底。
+      # 要手机免密直连再打开，并确认只在内网。
+      MRM_WEB_LAN_OPEN: "0"
+      # 额外放行 IP/CIDR，逗号分隔
+      MRM_WEB_IP_WHITELIST: ""
+      # E1：是否信任反向代理的 X-Forwarded-For / X-Real-IP。
+      # 0 = 不信任（安全默认，这两个头客户端可伪造）；
+      # 只有前面挂了 nginx/Caddy 且你确认它会**覆盖**（不是追加）这两个头时才设 1。
+      MRM_TRUST_PROXY: "0"
+      # 自动任务巡检间隔（秒）。只对本进程有效，不写 config.json。
+      MRM_INTERVAL: "3600"
+    # D5：GPU 段（注释掉的示例。P600 只有 2GB 显存，默认不开；
+    # 要开需宿主装 NVIDIA Container Toolkit，见 docker/README.md 常见问题）
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]

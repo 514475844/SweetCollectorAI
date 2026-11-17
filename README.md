@@ -11,7 +11,7 @@
 - 两条采集路径自动选：成熟开源下载器 gallery-dl 走主路，自研通用采集器兜底自定义站点
 - 去重、AI 打分、偏好学习全部本地运行（CLIP ONNX，不联网）
 - 桌面窗口 + 手机浏览器同一套界面，数据库只有一个
-- 便携软件，整目录拷走即用，无需安装
+- 数据全部落在软件目录 `data/` 内，整目录拷走即可换机（Windows 便携版发布中，当前从源码运行）
 
 ---
 
@@ -34,30 +34,42 @@
 
 ---
 
+## 当前状态
+
+| | |
+| --- | --- |
+| ✅ 当前可用 | **源码运行**（下方方式一，Windows 一键脚本或手动 pip 安装）；Docker（Linux / NAS，见 `docker/` 说明） |
+| 🚧 暂未发布 | **Windows 便携版压缩包**——Releases 目前只有版本说明，可执行程序包在准备中，发布后本节会更新 |
+| ⚠️ 已知问题 | 本地 AI 模型文件（约 150 MB）未随源码入库，需首次使用时按提示获取；无模型时 AI 筛选自动降级，其余功能不受影响 |
+
 ## 快速开始
 
-### 方式一：直接运行（推荐）
+### 方式一：从源码运行（当前唯一完整可用方式）
 
-> **当前状态：源码已开源，便携版程序尚未发布到 Releases。** Releases 目前只有版本说明，没有打包好的可执行程序。现在要从源码运行（方式二）；等第一个便携版上传后，这里会改为直接下载。
+环境要求：**Python 3.11+**。
 
-首次运行会生成 `data/` 目录，任务、图库、配置、模型都在里面。**升级只需覆盖主程序，不要删 `data/`。**
+**Windows 一键脚本**（自动检查 Python 版本、依赖、端口占用、数据目录写权限）：
 
-> 本地 AI 模型文件体积较大，未随源码入库。软件首次使用 AI 功能时会在设置页提示如何获取；没有模型时其余功能照常可用。
-
-### 方式二：从源码运行（当前可用）
-
-```bash
-# 环境：Python 3.11+
-pip install -r requirements.txt
-
-# 桌面窗口版
-python mrm_app.py gui
-
-# 无界面 + 浏览器访问版
-python mrm_web_app.py
+```bat
+start_gui.bat    # 桌面窗口版
+start_web.bat    # 无界面后台版，浏览器访问 http://127.0.0.1:8080
 ```
 
-前端源码在 `media_resource_manager/webapp/`，改界面后重新构建：
+首次运行会自动建虚拟环境并装依赖（约 2–5 分钟，视网速），之后每次直接秒开。
+
+**手动方式**（macOS / Linux 或想用已有虚拟环境的 Windows 用户）：
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+
+python mrm_app.py          # 桌面窗口版（内置浏览器界面）
+python mrm_web_app.py      # 同上，等价入口
+python -m media_resource_manager.headless   # 无界面，仅 Web 服务（浏览器访问 127.0.0.1:8080）
+```
+
+前端源码在 `media_resource_manager/webapp/`，改界面后重新构建（构建产物 `web/` 已随仓库带上，不装 Node.js 也能直接跑）：
 
 ```bash
 cd media_resource_manager/webapp
@@ -65,9 +77,13 @@ npm install
 npm run build
 ```
 
+### 方式二：Windows 便携版（暂未发布）
+
+便携版（one-folder 绿色压缩包）正在准备，发布后本节改为：下载 zip → 解压 → 双击 `SweetWeb.exe`，无需安装 Python。届时数据全在软件目录 `data/` 内，整目录拷走即可换机；**升级只覆盖程序文件，不要删 `data/`**。
+
 ### 五分钟上手
 
-1. 双击 `SweetWeb.exe` 打开软件
+1. 打开软件（源码方式一走上面的启动脚本）
 2. 左侧「任务」→ 新建任务，至少填一个网址，建议填主题词
 3. 点保存，再点任务行的「运行」
 4. 底部日志看进度，左侧「图库」看结果
