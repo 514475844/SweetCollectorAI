@@ -19,23 +19,35 @@ from __future__ import annotations
 import re
 from urllib.parse import urlsplit
 
-_URL_RE = re.compile(r"^https?://[^\s]+$", re.I)
+# V0.0.57：真机微信/浏览器分享文本常拿标点收尾——「快看。https://x/s/abc。」
+# 「https://x/s/abc？」「【标题】https://x/s/abc…」。老正则只排除了中文逗号等，
+# 漏了句号/全角问号/省略号，链接末尾就挂个标点 → 采集时 404。
+# 合法 URL 里不会出现未编码的全角字符，统一列进排除集；半角句末标点单独剥尾部。
+_PUNCT_EXCLUDE = (
+    "，。、；：？！（）【】《》「」『』“”‘’…—～·"   # 全角标点
+    ",<>\"'）)】"                                  # 半角/原有
+)
+_URL_BODY = r"https?://[^\s" + re.escape(_PUNCT_EXCLUDE) + r"]+"
+_URL_RE = re.compile("^" + _URL_BODY + "$", re.I)
+_SEARCH_RE = re.compile(_URL_BODY, re.I)
+_TAIL_TRIM = ".,;!?"   # 只剥最末尾的半角句末标点，域名/路径中间的点不受影响
 
 
 def clean_link(raw) -> str:
     """从分享文本里抠出第一个网页链接。
 
-    安卓"更多打开方式"传来的一般就是纯 URL，但也常见这种形态：
+    安卓"更多打开方式"传来的一般就是纯 URL，但也常见：
     「文章标题 https://mp.weixin.qq.com/s/xxx 来自微信公众号」
-    —— 微信分享文本常带尾巴。抠不到就返回空串（调用方报错）。
+    「快看这篇文章。https://mp.weixin.qq.com/s/xxx。」
+    —— 微信/浏览器分享文本常带标题和标点尾巴，都要剔干净。抠不到返回空串。
     """
     text = str(raw or "").strip()
     if not text:
         return ""
-    if _URL_RE.match(text):
-        return text
-    m = re.search(r'''https?://[^\s，,、<>"'）)】]+''', text)
-    return m.group(0) if m else ""
+    m = _URL_RE.match(text) or _SEARCH_RE.search(text)
+    if not m:
+        return ""
+    return m.group(0).rstrip(_TAIL_TRIM)
 
 
 def is_reachable_site(url: str) -> tuple[bool, str]:

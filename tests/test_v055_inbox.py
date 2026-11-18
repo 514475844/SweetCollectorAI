@@ -28,6 +28,27 @@ def test_clean_link_extracts_url():
     assert clean_link("没有链接") == ""
 
 
+def test_clean_link_strips_cjk_trailing_punctuation():
+    """V0.0.57：真机微信/浏览器分享文本拿标点收尾，链接不能挂标点。
+
+    模拟器塞的是纯 URL，测不出这个；真机一分享「标题。链接。」就 404。
+    """
+    from media_resource_manager.inbox import clean_link
+    u = "https://mp.weixin.qq.com/s/abc123"
+    # 中文句号（前后）、全角问号、省略号、书名号——微信常见形态
+    assert clean_link("快看这篇文章。" + u + "。") == u
+    assert clean_link(u + "？") == u
+    assert clean_link("【重磅】" + u + "…") == u
+    assert clean_link("文章标题：" + u + "，快看！") == u
+    # 半角句末标点单独剥
+    assert clean_link(u + ".") == u
+    # URL 自带 query 不能被误伤
+    q = u + "?a=1&b=2"
+    assert clean_link(q) == q
+    # 原有纯 URL / 带尾巴不回归
+    assert clean_link("标题 " + u + " 来自微信公众号") == u
+
+
 def test_reachable_site_rejects_non_web():
     from media_resource_manager.inbox import is_reachable_site
     assert is_reachable_site("ftp://x")[0] is False
