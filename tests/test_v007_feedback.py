@@ -49,24 +49,36 @@ def test_non_reject_actions_leave_ledger_alone(tmp_db):
 
 
 def test_first_hit_is_soft_second_hit_is_hard(tmp_db, tmp_config):
-    """一次只观察，两次才升级成下载前就拦。"""
+    """账本层：一次只观察，两次标记 hardened。
+
+    V0.0.56：默认影子模式下，hardened 的词在词表层**仍降级成软观察**
+    （只送审核不硬拦），只有 cfg.feedback_auto_harden=True 才真进硬拦。
+    这里同时钉住两档行为，别把"账本升级"与"下载前硬拦"混为一谈。
+    """
     fb.record_rejection(tmp_db, ["cosplay"], "dislike")
     t = find_terms.collect(tmp_db, _task(), tmp_config)
     assert "cosplay" not in [w.lower() for w in t.avoid]
     assert "cosplay" in [w.lower() for w in t.soft_avoid]
 
     r = fb.record_rejection(tmp_db, ["cosplay"], "blacklist")
-    assert "cosplay" in r["hardened"]
+    assert "cosplay" in r["hardened"]          # 账本层仍升级
+    # 影子模式（默认）：仍只观察，不硬拦
     t = find_terms.collect(tmp_db, _task(), tmp_config)
-    assert "cosplay" in [w.lower() for w in t.avoid]
-    assert "cosplay" not in [w.lower() for w in t.soft_avoid]
-    assert "cosplay" in [w.lower() for w in t.avoid_feedback]
+    assert "cosplay" not in [w.lower() for w in t.avoid]
+    assert "cosplay" in [w.lower() for w in t.soft_avoid]
+    # 显式开启自动拦截：才恢复旧的硬拦口径
+    tmp_config.feedback_auto_harden = True
+    t2 = find_terms.collect(tmp_db, _task(), tmp_config)
+    assert "cosplay" in [w.lower() for w in t2.avoid]
+    assert "cosplay" not in [w.lower() for w in t2.soft_avoid]
+    assert "cosplay" in [w.lower() for w in t2.avoid_feedback]
 
 
 def test_hard_feedback_really_blocks_before_download(tmp_db, tmp_config):
-    """硬反馈词必须真的让「下载前比对」判成不抓，不能只是躺在看板里。"""
+    """开启自动拦截后，硬反馈词必须真的让下载前比对判成不抓。"""
     fb.record_rejection(tmp_db, ["cosplay"], "purge")
     fb.record_rejection(tmp_db, ["cosplay"], "dislike")
+    tmp_config.feedback_auto_harden = True
     t = find_terms.collect(tmp_db, _task(), tmp_config)
     verdict, _why = find_terms.prefilter(t, "https://site/img/123.jpg", "Cosplay 写真")
     assert verdict == "skip"
