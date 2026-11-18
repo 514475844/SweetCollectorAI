@@ -1186,7 +1186,7 @@ nav { display: grid; gap: 2px; }
 .np-mark { flex: none; align-self: center; width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--brand); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .np-mark:hover { border-color: var(--brand); }
 .np-hd .small { font-size: 12px; }
-.np-hd .btn.sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 
 /* ── V0.0.33 微交互：所有可点区域统一过渡节奏，避免有的秒变、有的滞后 ── */
 .subitem, .side-btn, .side-tool, .mode-btn, .bell-btn, .sb-btn, .ncar,

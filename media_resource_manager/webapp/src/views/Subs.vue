@@ -348,7 +348,7 @@ useShellRefresh(() => load())
 .bad { color: var(--err); font-size: 12px; margin-top: 2px; }
 .ops { display: flex; flex-wrap: wrap; gap: 6px; }
 /* 只补全局没有的尺寸档位；底色/边框/文字色一律用全局 .btn */
-.btn.sm { padding: 3px 8px; font-size: 12px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .btn.danger { color: var(--err); border-color: #f3c9c9; }
 .empty { padding: 30px 10px; color: var(--muted); text-align: center; }
 /* .card 只留本页需要的间距，不再覆盖边框/圆角（原来写的是深色边框） */

@@ -67,9 +67,17 @@ const phaseLabel = computed(() => {
   }
   return m[imp.phase] || (imp.running ? '正在准备' : '')
 })
+// V0.0.59：百分比必须与旁边的「已完成 / 总数」是同一套算法。
+// 后端 pct 是「整体流程」百分比（入库只占前 20%，打标占后 80%），
+// 于是 35750/100365（≈35%）被显示成 20×35%≈7%，用户以为算错了。
+// 导入卡这一屏只讲当前阶段，百分比一律按 done/total 现算，进度条同口径。
+const stagePct = computed(() => {
+  if (!imp.total || imp.done <= 0) return 0
+  return Math.min(100, Math.max(0, Math.round(imp.done * 100 / imp.total)))
+})
 const countText = computed(() => {
   if (!imp.total) return '正在统计文件数量…'
-  const pct = imp.pct > 0 ? ` · ${imp.pct}%` : ''
+  const pct = stagePct.value > 0 ? ` · ${stagePct.value}%` : ''
   return `${fmt(imp.done)} / ${fmt(imp.total)} 张${pct}`
 })
 // 只有真的知道「正在处理哪个文件」时才显示这一行，不要用「正在处理…」凑数
@@ -311,7 +319,7 @@ onMounted(refreshLast)
         <span class="muted small">{{ countText }}</span>
         <span v-if="imp.eta" class="muted small">约剩 {{ imp.eta }}</span>
       </div>
-      <div class="bar"><i :style="{ width: Math.max(2, imp.pct) + '%' }" /></div>
+      <div class="bar"><i :style="{ width: Math.max(2, stagePct) + '%' }" /></div>
       <div v-if="curFile" class="state-ft muted small">{{ curFile }}</div>
     </div>
 

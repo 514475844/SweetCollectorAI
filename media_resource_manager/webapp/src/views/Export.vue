@@ -542,7 +542,7 @@ onUnmounted(() => {
 .intro .steps li { line-height: 1.6; }
 .sec-ft { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .ops { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.btn.sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .tune { margin-bottom: 6px; }
 .kv { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 14px; font-size: 13px; align-items: center; }
 .kv span { color: var(--muted); }

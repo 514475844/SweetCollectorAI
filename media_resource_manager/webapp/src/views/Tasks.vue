@@ -1286,7 +1286,7 @@ onUnmounted(() => {
 /* V0.0.35：整行操作按钮原来 5px 缝，图标挨着图标像连成一排；统一到 8px。
    换行时行距 6px，避免窄列里两排按钮又贴在一起。 */
 .acts { display: flex; gap: 8px; flex-wrap: wrap; row-gap: 6px; justify-content: flex-end; }
-.btn.sm { padding: 4px 9px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 /* 图标按钮：正方形 + 不换行。文字一旦换成图标，就必须给死宽高，
    否则按钮会随 flex 压缩成一条缝（连图标都被挤没）。 */
 .btn.ico {
@@ -1365,7 +1365,7 @@ textarea {
   font-size: 12px; white-space: nowrap; cursor: pointer;
 }
 .lv-actions { display: flex; gap: 10px; align-items: center; }
-.btn.xs { padding: 2px 8px; font-size: 12px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 @media (max-width: 820px) {
   /* 手机上「级别名 + 输入 + 严格 + 删」挤不下，改成两行 */
   .lv-row { flex-wrap: wrap; }

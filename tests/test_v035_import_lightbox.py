@@ -93,7 +93,10 @@ def test_import_state_is_module_level():
     assert "onMounted(poll)" in comp and "function poll()" in comp, \
         "组件挂载时没接回上次的作业"
     # 界面显示的是共享状态，不是组件自己的 ref
-    assert "imp.running" in comp and "imp.pct" in comp and "imp.result" in comp
+    # V0.0.59：百分比改从 imp.done/imp.total 现算（stagePct），不再直接读 imp.pct，
+    #          但数据源仍是共享状态 imp —— 这条断言的意图不变，只换判据。
+    assert "imp.running" in comp and "imp.result" in comp
+    assert "imp.done" in comp and "imp.total" in comp, "进度没用共享状态里的已完成/总数"
 
 
 # ───────────────────────── ③ 灯箱布局与关闭 ─────────────────────────

@@ -197,6 +197,6 @@ useShellRefresh(() => load())
 .ok { color: var(--ok); margin: 0; }
 .small { font-size: 12px; }
 .empty { padding: 24px; text-align: center; margin: 0; }
-.btn.sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .btn.danger { color: var(--err); border-color: #f3c9c9; }
 </style>

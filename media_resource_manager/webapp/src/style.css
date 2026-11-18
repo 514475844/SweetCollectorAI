@@ -47,6 +47,19 @@ a { color: var(--brand); text-decoration: none; }
 .btn.primary:hover { background: var(--brand-2); border-color: var(--brand-2); }
 .btn.ghost { background: transparent; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
+/* V0.0.59：按钮尺寸档位统一（用户反馈「有的大有的小」）。
+   以前 .btn.sm / .btn.xs 在 12 个页面里各写一遍，padding 3~5px 不等，
+   带图标的 primary 按钮又更高，同一屏里高矮胖瘦全不一样。
+   现在全局定死尺寸：同一档一律等高，纯文字/带图标只差横向留白。
+   各页面原有的局部 .btn.sm/.btn.xs 覆盖已全部删除，改尺寸只改这里。 */
+.btn.sm {
+  padding: 5px 12px; font-size: 12px; border-radius: 8px;
+  height: 30px; box-sizing: border-box;
+}
+.btn.xs {
+  padding: 3px 9px; font-size: 12px; border-radius: 7px;
+  height: 26px; box-sizing: border-box;
+}
 .card {
   background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);

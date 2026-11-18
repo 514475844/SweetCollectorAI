@@ -164,7 +164,7 @@ useShellRefresh(() => { load(); loadStats(); loadHints() })
 .small { font-size: 12px; }
 .tiny { font-size: 11px; }
 .mono { font-variant-numeric: tabular-nums; }
-.btn.sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .muted { color: var(--muted); }
 /* V0.0.18 · 站点统计 */
 .sec { padding: 16px 18px; margin-top: 14px; }

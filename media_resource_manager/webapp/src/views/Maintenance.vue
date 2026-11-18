@@ -241,7 +241,7 @@ useShellRefresh(() => { load(); loadSyncDir() })
 .sec-hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .sec-hd h3 { margin: 0; font-size: 15px; }
 .sec-ft { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-.btn.sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .kv { display: grid; grid-template-columns: 96px 1fr; gap: 6px 12px; font-size: 12px; align-items: center; }
 .kv span { color: var(--muted); }
 .kv b { font-weight: 500; word-break: break-all; }

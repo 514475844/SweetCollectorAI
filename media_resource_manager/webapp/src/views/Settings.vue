@@ -2070,7 +2070,7 @@ onUnmounted(() => {
 .tbl th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .tbl td { padding: 7px 8px; border-bottom: 1px solid #f2f3f8; }
 .acts { display: flex; gap: 6px; }
-.btn.sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .addrow { display: grid; grid-template-columns: 1fr 100px 1.3fr 80px 1fr 1fr 70px 70px; gap: 8px; margin-top: 6px; }
 /* 2026-10-29（第 7 条续）：备份清单 5 列在中等宽度（1000–1200）也会顶出去，
    先把按钮组换到第二行，别等 820 才处理。 */

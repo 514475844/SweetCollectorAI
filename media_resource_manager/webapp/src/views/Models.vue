@@ -244,7 +244,7 @@ onUnmounted(() => { if (dlTimer) clearInterval(dlTimer) })
           <li>适配：{{ m.hardware || '—' }}</li>
         </ul>
         <button v-if="m.ready || m.builtin" class="btn sm" :disabled="m.current" @click="use(m)">
-          {{ m.current ? '当前使用' : '换成这个' }}
+          {{ m.current ? '当前使用' : '设为当前模型' }}
         </button>
         <button v-else class="btn sm primary" :disabled="dl && dl.running"
                 @click="download(m)"><Icon name="download" :size="13" />下载</button>
@@ -292,7 +292,7 @@ onUnmounted(() => { if (dlTimer) clearInterval(dlTimer) })
 
 .intro { margin: 0; font-size: 13px; line-height: 1.75; }
 .ok { color: var(--ok); margin: 0; }
-.btn.sm { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 
 /* R245 本机配置 */
 .sys { padding: 14px 16px; display: grid; gap: 12px; }

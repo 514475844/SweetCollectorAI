@@ -93,7 +93,7 @@ async function pruneAll() {
 .hint .icon { margin-top: 2px; color: var(--warn); }
 .bar { display: flex; align-items: center; justify-content: space-between;
        gap: 10px; flex-wrap: wrap; padding: 10px 14px; }
-.btn.sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
+/* V0.0.59：按钮尺寸已统一到全局 style.css，此处局部覆盖删除 */
 .err { color: var(--err, #b91c1c); margin: 0; }
 .goodbar { color: var(--brand, #6d4bd6); margin: 0; font-size: 13px; }
 </style>
