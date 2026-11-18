@@ -1,0 +1,138 @@
+........................................................................ [ 12%]
+........................................................................ [ 25%]
+...............F........................................................ [ 38%]
+...........................................................ss........... [ 50%]
+............................s........................................... [ 63%]
+...........s............................................................ [ 76%]
+..............F......................................................... [ 89%]
+.............................................................            [100%]
+================================== FAILURES ===================================
+______________ test_dislike_with_recycle_off_deletes_everything _______________
+
+tmp_config = AppConfig(db_path=WindowsPath('C:/Users/Admin/AppData/Local/Temp/pytest-of-Admin/pytest-67/test_dislike_with_recycle_o...del_path='', ai_api_url='', ai_api_key='', ai_api_model='', saved_urls=[], encryption_enabled=False, age_gate_ok=False)
+task = (<media_resource_manager.db.Database object at 0x0000026BDD192610>, 1)
+
+    def test_dislike_with_recycle_off_deletes_everything(tmp_config, task):
+        """「删除时先进回收站」关着 → 文件直删 + DB 行一起删（不留在回收站）。"""
+        db, tid = task
+        tmp_config.use_recycle = False
+        db, iid, f = _seed(tmp_config, tid, "off.jpg")
+    
+        from media_resource_manager.review.queue import ReviewQueue
+>       ReviewQueue(db, tmp_config.isolate_dir, tmp_config).apply(
+            iid, ReviewDecision.DISLIKE)
+
+tests\test_r33_review_and_table.py:261: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+media_resource_manager\review\queue.py:71: in apply
+    self._do_apply(rec, decision)
+media_resource_manager\review\queue.py:116: in _do_apply
+    self._delete_image_file(getattr(rec, "path", None))
+media_resource_manager\review\queue.py:200: in _delete_image_file
+    Path(p).unlink(missing_ok=True)
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:1235: in _safe_path_unlink
+    _try_trash(abs_path)
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:989: in _try_trash
+    _check_bulk_delete_guard(abs_path)
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:873: in _check_bulk_delete_guard
+    _exit_bulk_guard_control(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+message = '[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":3981,"threshold":50,"scope":"turn","targets":["C:\\\\Users\\\\Admin\\\\Sweet\\\\data\\\\review\\\\off.jpg"],"targetCount":1}'
+
+    def _exit_bulk_guard_control(message):
+        try:
+            sys.stderr.write(message)
+            if not message.endswith("\n"):
+                sys.stderr.write("\n")
+            sys.stderr.flush()
+        finally:
+>           raise SystemExit(1)
+E           SystemExit: 1
+
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:848: SystemExit
+---------------------------- Captured stderr call -----------------------------
+[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":3981,"threshold":50,"scope":"turn","targets":["C:\\Users\\Admin\\Sweet\\data\\review\\off.jpg"],"targetCount":1}
+________ test_review_dislike_is_a_delete_following_the_recycle_switch _________
+
+tmp_config = AppConfig(db_path=WindowsPath('C:/Users/Admin/AppData/Local/Temp/pytest-of-Admin/pytest-67/test_review_dislike_is_a_de...del_path='', ai_api_url='', ai_api_key='', ai_api_model='', saved_urls=[], encryption_enabled=False, age_gate_ok=False)
+
+    def test_review_dislike_is_a_delete_following_the_recycle_switch(tmp_config):
+        """r33 定版：『不喜欢』= 删除这张图，删法跟随「删除时先进回收站」开关。
+    
+        开 → 文件进隔离区(回收站)、行保留（可还原）；关 → 文件+行一起直删。
+        """
+        db = Database(tmp_config.db_path)
+        rev = tmp_config.review_dir / "1"
+        rev.mkdir(parents=True, exist_ok=True)
+        # 两分支各造一条，互不影响
+        results = {}
+        for i, use_recycle in enumerate((True, False)):
+            db2 = Database(tmp_config.db_path)
+            tmp_config.use_recycle = use_recycle
+            f = _mk_file(rev, f"b{i}.jpg")
+            rec = ImageRecord(id=None, source_url=f"https://site.com/b{i}.jpg",
+                              task_id=1, path=str(f),
+                              in_quarantine=True, needs_review=True)
+            iid = upsert_image(db2, rec)
+>           ReviewQueue(db2, tmp_config.isolate_dir, tmp_config).apply(
+                iid, ReviewDecision.DISLIKE)
+
+tests\test_review_gallery_folders.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+media_resource_manager\review\queue.py:71: in apply
+    self._do_apply(rec, decision)
+media_resource_manager\review\queue.py:116: in _do_apply
+    self._delete_image_file(getattr(rec, "path", None))
+media_resource_manager\review\queue.py:200: in _delete_image_file
+    Path(p).unlink(missing_ok=True)
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:1235: in _safe_path_unlink
+    _try_trash(abs_path)
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:989: in _try_trash
+    _check_bulk_delete_guard(abs_path)
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:873: in _check_bulk_delete_guard
+    _exit_bulk_guard_control(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+message = '[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":3981,"threshold":50,"scope":"turn","targets":["C:\\\\Users\\\\Admin\\\\Sweet\\\\data\\\\review\\\\1\\\\b1.jpg"],"targetCount":1}'
+
+    def _exit_bulk_guard_control(message):
+        try:
+            sys.stderr.write(message)
+            if not message.endswith("\n"):
+                sys.stderr.write("\n")
+            sys.stderr.flush()
+        finally:
+>           raise SystemExit(1)
+E           SystemExit: 1
+
+..\AppData\Local\Programs\WorkBuddy\resources\app.asar.unpacked\cli\vendor\shim\sitecustomize.py:848: SystemExit
+---------------------------- Captured stderr call -----------------------------
+[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] {"count":3981,"threshold":50,"scope":"turn","targets":["C:\\Users\\Admin\\Sweet\\data\\review\\1\\b1.jpg"],"targetCount":1}
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:72: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:35: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:120: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+tests/test_r38_pump_main_task.py::test_loop_not_running_is_the_silent_failure_mode
+  C:\Users\admin\Sweet\tests\test_r38_pump_main_task.py:154: RuntimeWarning: coroutine 'test_loop_not_running_is_the_silent_failure_mode.<locals>._never' was never awaited
+    with pytest.raises(RuntimeError):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r33_review_and_table.py::test_dislike_with_recycle_off_deletes_everything
+FAILED tests/test_review_gallery_folders.py::test_review_dislike_is_a_delete_following_the_recycle_switch
+EXIT=1

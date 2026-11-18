@@ -1,0 +1,26 @@
+127.0.0.1 - - [06/Oct/2026 06:05:46] code 404, message File not found
+127.0.0.1 - - [06/Oct/2026 06:05:46] "GET /robots.txt HTTP/1.1" 404 -
+127.0.0.1 - - [06/Oct/2026 06:05:46] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:47] "GET /albumA/page.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:48] "GET /albumB/page.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:48] "GET /albumA/photo.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:48] "GET /albumB/photo.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:49] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:49] "GET /albumA/page.html HTTP/1.1" 200 -
+127.0.0.1 - - [06/Oct/2026 06:05:50] "GET /albumB/page.html HTTP/1.1" 200 -
+engine errors: ['selector warning @ http://127.0.0.1:8732/index.html: 所有 image selector 落空，通用兜底也没找到图片：页面可能是 JS 动态渲染、需要登录/Cookie，或入口页本身不含图', "selector warning @ http://127.0.0.1:8732/index.html: image selector 'img' matched 0"]
+[PASS] 流式下载落盘(两张都下载)  (downloaded=2)
+[PASS] 文件名保留网页默认名 photo.jpg  (['sc\\photo(1).jpg', 'sc\\photo.jpg'])
+[PASS] 一个网站一个文件夹(扁平: sc 下直接两张, 同名→(1))  (['sc\\photo(1).jpg', 'sc\\photo.jpg'])
+[PASS] 没有生成 .json 边车文件
+[PASS] 同名冲突 -> photo(1).jpg  (photo(1).jpg)
+[PASS] 再冲突 -> photo(2).jpg  (photo(2).jpg)
+[PASS] 重跑不重复下载(already_in_db 跳过)  (downloaded=0 skipped=2)
+[PASS] 重跑后磁盘文件数不变  (files=2)
+[PASS] TaskQueue 具备 stop_task/stop_all
+[PASS] GUI 完整启动冒烟(launch+theme+事件循环)
+[PASS] 停止后无孤儿忙碌条(refresh 冲刷 deleteLater)
+[PASS] 新建任务 保存按钮落库(灾难BUG回归, 已无开始任务按钮)
+[PASS] 静态检查 pyflakes 无 undefined name
+
+=== 自查全部通过 ===

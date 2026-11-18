@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="5.975" timestamp="2026-10-06T11:43:25.280691+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r58_watermark_pane_clip" name="test_qss_has_transparent_tab_pane" time="0.251"><failure message="AssertionError: LIGHT_QSS 最后一条 QTabWidget::pane 规则没有 transparent：'QTabWidget::pane { border:none; background:#ffffff; }` —— **不透明白底**。\n      而它右边界在窗口 x=1174，恰好把水印 logo（控件 1110..1370，内容带\n'&#10;assert 'transparent' in 'QTabWidget::pane { border:none; background:#ffffff; }` —— **不透明白底**。\n      而它右边界在窗口 x=1174，恰好把水印 logo（控件 1110..1370，内容带\n      1120..1365）左边 54px 盖掉，于是 &quot;Sweet&quot; 的 S 没了，只剩 &quot;weet&quot;。\n\n      实测记录（tools/_prob'">def test_qss_has_transparent_tab_pane():
+        """QSS 里必须有 QTabWidget::pane 透明规则（缺了 S 就被裁）。"""
+        from media_resource_manager.gui import theme
+    
+        for name in ("LIGHT_QSS", "DARK_QSS"):
+            qss = getattr(theme, name)
+            assert "QTabWidget::pane" in qss, f"{name} 缺 QTabWidget::pane 规则"
+            # pane 透明规则必须真的写了 transparent，而不是只留个选择器
+            idx = qss.rfind("QTabWidget::pane")
+            tail = qss[idx:idx + 200]
+&gt;           assert "transparent" in tail, (
+                f"{name} 最后一条 QTabWidget::pane 规则没有 transparent：{tail[:120]!r}")
+E           AssertionError: LIGHT_QSS 最后一条 QTabWidget::pane 规则没有 transparent：'QTabWidget::pane { border:none; background:#ffffff; }` —— **不透明白底**。\n      而它右边界在窗口 x=1174，恰好把水印 logo（控件 1110..1370，内容带\n'
+E           assert 'transparent' in 'QTabWidget::pane { border:none; background:#ffffff; }` —— **不透明白底**。\n      而它右边界在窗口 x=1174，恰好把水印 logo（控件 1110..1370，内容带\n      1120..1365）左边 54px 盖掉，于是 "Sweet" 的 S 没了，只剩 "weet"。\n\n      实测记录（tools/_prob'
+
+tests\test_r58_watermark_pane_clip.py:46: AssertionError</failure></testcase><testcase classname="tests.test_r58_watermark_pane_clip" name="test_qss_transparent_pane_comes_after_opaque_pane" time="0.001"><failure message="AssertionError: LIGHT_QSS 最后一条 pane 规则不是透明的 —— 透明规则被写在实底规则前面会被覆盖（顺序反了 = 规则失效）&#10;assert 'transparent' in 'QTabWidget::pane { border:none; background:#ffffff; }` —— **不透明白底**。\n      而它右边界在窗口 x=1174，恰好把水印 logo（控件 1110..1370，内容带\n      1120..1365）左边 54px 盖掉，于是 &quot;Sweet&quot; 的 S 没了，只剩 &quot;weet&quot;。\n\n      实测记录（tools/_prob'">def test_qss_transparent_pane_comes_after_opaque_pane():
+        """顺序锁死：透明规则必须在实底 pane 规则**之后**（同特异性后者胜）。
+    
+        这是本 bug 最容易复发的点：有人把 _WM_PENETRATE 挪到 QSS 开头，
+        透明规则就被后面的 `background:#ffffff` 覆盖回去，症状原样复现。
+        """
+        from media_resource_manager.gui import theme
+    
+        for name in ("LIGHT_QSS", "DARK_QSS"):
+            qss = getattr(theme, name)
+            # 所有 QTabWidget::pane 出现位置
+            pos = []
+            start = 0
+            while True:
+                i = qss.find("QTabWidget::pane", start)
+                if i &lt; 0:
+                    break
+                pos.append(i)
+                start = i + 1
+            assert len(pos) &gt;= 2, (
+                f"{name} 期望至少两条 pane 规则（实底 + 透明），实际 {len(pos)}")
+            last = pos[-1]
+            tail = qss[last:last + 200]
+&gt;           assert "transparent" in tail, (
+                f"{name} 最后一条 pane 规则不是透明的 —— 透明规则被写在实底规则"
+                f"前面会被覆盖（顺序反了 = 规则失效）")
+E           AssertionError: LIGHT_QSS 最后一条 pane 规则不是透明的 —— 透明规则被写在实底规则前面会被覆盖（顺序反了 = 规则失效）
+E           assert 'transparent' in 'QTabWidget::pane { border:none; background:#ffffff; }` —— **不透明白底**。\n      而它右边界在窗口 x=1174，恰好把水印 logo（控件 1110..1370，内容带\n      1120..1365）左边 54px 盖掉，于是 "Sweet" 的 S 没了，只剩 "weet"。\n\n      实测记录（tools/_prob'
+
+tests\test_r58_watermark_pane_clip.py:73: AssertionError</failure></testcase><testcase classname="tests.test_r58_watermark_pane_clip" name="test_watermark_wordmark_not_clipped_on_task_page" time="4.776"><failure message="AssertionError: light: 水印左边被切掉 64px（pane 又不透明白了？） bbox=[1174, 685, 1365, 769] 控件=(1010, 576, 260, 260)&#10;assert 64 &lt;= 16">qapp = &lt;PySide6.QtWidgets.QApplication(0x1d60b9adb30) at 0x000001D60D613D00&gt;
+
+    def test_watermark_wordmark_not_clipped_on_task_page(qapp):
+        """像素级主验收：任务页右下角水印的 "Sweet" 完整，左边界贴到理论值。
+    
+        理论左边界 = 控件左边界 + logo 内容带左边距 * (控件边长 / logo 边长)。
+        logo 是 256x256、内容带从 x=10 起（实测），控件 260px ⇒ 约 +10px。
+        这里放宽到 +16px 容差（留出 QPainter 平滑缩放的边缘），但绝不容忍
+        之前那种 +54px（pane 盖住半边）。
+        """
+        from PySide6.QtCore import QPoint
+    
+        from media_resource_manager.gui import theme
+        from media_resource_manager.gui.main_window import MainWindow
+    
+        for dark in (False, True):
+            qapp.setStyleSheet(theme.DARK_QSS if dark else theme.LIGHT_QSS)
+            w = MainWindow()
+            w._ensure_single_instance = lambda *a, **k: True
+            try:
+                w.resize(1382, 899)
+                w.show()
+                for _ in range(6):
+                    qapp.processEvents()
+                w.stack.setCurrentIndex(0)          # 任务页（用户真机默认页）
+                for _ in range(6):
+                    qapp.processEvents()
+                w._watermark._fit()
+                for _ in range(4):
+                    qapp.processEvents()
+    
+                wm = w._watermark
+                assert wm.has_image, "水印没有图源，这条验收失去意义"
+                tl = wm.mapTo(w, QPoint(0, 0))
+                bbox, n = _watermark_painted_bbox(w, qapp)
+                tag = "dark" if dark else "light"
+                assert bbox, f"{tag}: 水印没画出来（n={n}）"
+    
+                # 控件本身必须还是右下角小方框（别为了露出 S 把浮层铺满整窗）
+                assert wm.width() &lt;= 284 and wm.height() &lt;= 284, (
+                    f"{tag}: 水印浮层不是小方框 {wm.geometry().getRect()}")
+    
+                gap = bbox[0] - tl.x()
+&gt;               assert gap &lt;= 16, (
+                    f"{tag}: 水印左边被切掉 {gap}px（pane 又不透明白了？）"
+                    f" bbox={bbox} 控件={wm.geometry().getRect()}")
+E                   AssertionError: light: 水印左边被切掉 64px（pane 又不透明白了？） bbox=[1174, 685, 1365, 769] 控件=(1010, 576, 260, 260)
+E                   assert 64 &lt;= 16
+
+tests\test_r58_watermark_pane_clip.py:152: AssertionError</failure></testcase><testcase classname="tests.test_r58_watermark_pane_clip" name="test_bottom_tabs_pane_is_transparent_at_runtime" time="0.668" /></testsuite></testsuites>

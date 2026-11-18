@@ -1,0 +1,189 @@
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 20%]
+........................................................................ [ 26%]
+........................................................................ [ 33%]
+.........................................ss............................. [ 40%]
+..........s......................................................s...... [ 47%]
+........................................................................ [ 53%]
+........s............................................................... [ 60%]
+F....................................................................... [ 67%]
+........................................................................ [ 74%]
+........................................................................ [ 80%]
+........................................................................ [ 87%]
+....................................................................F... [ 94%]
+.............................................................            [100%]
+================================== FAILURES ===================================
+_________________ test_p1_2_new_task_output_dir_starts_empty __________________
+
+    def test_p1_2_new_task_output_dir_starts_empty():
+        """新建对话框打开时 f_out 应为空 —— 除非用户主动点了「沿用」。"""
+        seg = _fn_src("_open_task_form")
+        # 出现 setText(last) 只允许在 toggled 回调里（用户点了才填）
+        j = seg.find("self.f_out.setText(last")
+>       assert j >= 0, "应保留 toggled 里的显式填充"
+E       AssertionError: 应保留 toggled 里的显式填充
+E       assert -1 >= 0
+
+tests\test_r59_production_report_fix.py:477: AssertionError
+________________________ test_chips_render_every_level ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002521C10D910>
+tmp_path = WindowsPath('C:/Users/Admin/AppData/Local/Temp/pytest-of-Admin/pytest-365/test_chips_render_every_level0')
+
+    def test_chips_render_every_level(monkeypatch, tmp_path):
+        """记进历史的词要显示成可点的小标签，别藏在下拉框里。"""
+        from PySide6.QtWidgets import QPushButton
+        app, win = _boot(monkeypatch, tmp_path)
+        _form(win)
+        win._remember_words(["猫耳", "和服"], "ai_label_history_l2")
+        win._remember_words(["猫耳", "和服"], "ai_label_history_l3")
+        win._refresh_hist_chips()
+        for name in ("b_hist_l2", "b_hist_l3"):
+            texts = [b.text() for b in getattr(win, name)._box.findChildren(QPushButton)]
+>           assert "猫耳" in texts and "和服" in texts
+E           AssertionError: assert ('猫耳' in [])
+
+tests\test_view_size.py:389: AssertionError
+---------------------------- Captured stderr call -----------------------------
+QWidget::setMaximumSize: (/QLabel) The largest allowed size is (16777215,16777215)
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:72: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:35: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:120: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+tests/test_r37_gallery_perf_and_jpg.py::test_set_concurrency_when_loop_closed_is_silent
+  C:\Users\admin\Sweet\media_resource_manager\scheduler\queue.py:244: RuntimeWarning: coroutine 'BaseEventLoop.shutdown_asyncgens' was never awaited
+    pass
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_r37_gallery_perf_and_jpg.py::test_thumb_cache_key_matches_the_writer
+  C:\Users\Admin\venvs\mrm\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object TaskQueue._worker at 0x000002521F80C280>
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 158, in get
+      await getter
+  GeneratorExit
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\Sweet\media_resource_manager\scheduler\queue.py", line 438, in _worker
+      _p, _s, task_id = await self._pq.get()
+                        ^^^^^^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 160, in get
+      getter.cancel()  # Just in case getter is not done yet.
+      ^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 762, in call_soon
+      self._check_closed()
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 520, in _check_closed
+      raise RuntimeError('Event loop is closed')
+  RuntimeError: Event loop is closed
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_r37_gallery_perf_and_jpg.py::test_thumb_cache_key_matches_the_writer
+  C:\Users\Admin\venvs\mrm\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object TaskQueue._worker at 0x000002521F80C160>
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 158, in get
+      await getter
+  GeneratorExit
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\Sweet\media_resource_manager\scheduler\queue.py", line 438, in _worker
+      _p, _s, task_id = await self._pq.get()
+                        ^^^^^^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 160, in get
+      getter.cancel()  # Just in case getter is not done yet.
+      ^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 762, in call_soon
+      self._check_closed()
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 520, in _check_closed
+      raise RuntimeError('Event loop is closed')
+  RuntimeError: Event loop is closed
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_r37_gallery_perf_and_jpg.py::test_thumb_cache_key_matches_the_writer
+  C:\Users\Admin\venvs\mrm\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object TaskQueue._worker at 0x0000025219A83AC0>
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 158, in get
+      await getter
+  GeneratorExit
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\Sweet\media_resource_manager\scheduler\queue.py", line 438, in _worker
+      _p, _s, task_id = await self._pq.get()
+                        ^^^^^^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 160, in get
+      getter.cancel()  # Just in case getter is not done yet.
+      ^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 762, in call_soon
+      self._check_closed()
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 520, in _check_closed
+      raise RuntimeError('Event loop is closed')
+  RuntimeError: Event loop is closed
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_r37_gallery_perf_and_jpg.py::test_thumb_cache_key_matches_the_writer
+  C:\Users\Admin\venvs\mrm\Lib\site-packages\_pytest\unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object TaskQueue._worker at 0x0000025219A83D00>
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 158, in get
+      await getter
+  GeneratorExit
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "C:\Users\admin\Sweet\media_resource_manager\scheduler\queue.py", line 438, in _worker
+      _p, _s, task_id = await self._pq.get()
+                        ^^^^^^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\queues.py", line 160, in get
+      getter.cancel()  # Just in case getter is not done yet.
+      ^^^^^^^^^^^^^^^
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 762, in call_soon
+      self._check_closed()
+    File "C:\Users\admin\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 520, in _check_closed
+      raise RuntimeError('Event loop is closed')
+  RuntimeError: Event loop is closed
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_r38_pump_main_task.py::test_loop_not_running_is_the_silent_failure_mode
+  C:\Users\admin\Sweet\tests\test_r38_pump_main_task.py:154: RuntimeWarning: coroutine 'test_loop_not_running_is_the_silent_failure_mode.<locals>._never' was never awaited
+    with pytest.raises(RuntimeError):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r59_production_report_fix.py::test_p1_2_new_task_output_dir_starts_empty
+FAILED tests/test_view_size.py::test_chips_render_every_level - AssertionErro...

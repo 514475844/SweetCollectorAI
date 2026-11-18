@@ -126,7 +126,7 @@ def test_start_message_never_claims_auto_generated_password(tmp_path, monkeypatc
 
 # ------------------------------------------------- 行为层：空密码免密直进
 
-@pytest.mark.parametrize("ip", ["127.0.0.1", "::1", "192.168.1.100", "10.0.0.5"])
+@pytest.mark.parametrize("ip", ["127.0.0.1", "::1", "192.168.1.9", "10.0.0.5"])
 def test_empty_password_passes_from_local_and_lan(ip):
     """★ 空密码 + 本机/局域网 → 放行（不再「空密码反而拦」）。"""
     h = _H(_cfg(password="", lan_open=False), client_ip=ip)
@@ -151,7 +151,7 @@ def test_empty_password_still_blocked_from_public():
 
 def test_lan_open_still_wins_when_on():
     """web_lan_open=True 时局域网仍恒免密（R52 契约不变）。"""
-    h = _H(_cfg(password="", lan_open=True), client_ip="192.168.1.100")
+    h = _H(_cfg(password="", lan_open=True), client_ip="192.168.1.9")
     assert h._auth_ok() is True
 
 

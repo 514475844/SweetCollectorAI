@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.046" timestamp="2026-10-12T11:46:08.700955+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_fill_buttons_are_flush_left" time="0.560"><failure message="AssertionError: b_hist_labels 左缘 x=107，应等于面板内容左缘 9（还套着占位标签？）&#10;assert 98 &lt;= 1&#10; +  where 98 = abs((107 - 9))">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x1e8f27fd6e0) at 0x000001E8F4F89A40&gt;
+
+    def test_fill_buttons_are_flush_left(win):
+        """项6：四行「全部填满」按钮整体顶到表单最左（不再有 92px 标签占位）。
+    
+        判据是**关系**：填充行左缘 == 面板内容左缘，且比上方输入框
+        （f_ai_labels，前面有 92px 标签）还靠左至少一个标签宽。
+        旧代码用 full_cell("", row) 套了一层 92px 占位标签 ⇒ 按钮缩在
+        输入框右侧起排，用户看到的就是「没顶到左边」。
+        """
+        win._ensure_task_form()
+        panel = getattr(win, "_form_panel", None)
+        assert panel is not None, "任务表单面板没建出来（_ensure_task_form 静默失败）"
+        # 面板平时是 hide 的（挂在主窗口下不占地方）⇒ 布局没激活过，
+        # 不 activate 的话所有 x() 都是 0，位置断言全是假的。
+        # ⚠ 只 activate 顶层布局不够：full_cell 里的**子**布局（92px 标签 +
+        #   输入框）也不会被激活 ⇒ 输入框的 mapTo 仍返回 0。show 一下最稳。
+        panel.show()
+        app = QApplication.instance()
+        app.processEvents()
+        # 面板内容左缘：任一行 full_cell 的左缘（用一级主题词那一行当基准）
+        labels_row = win.f_ai_labels.parent()          # half/full cell 容器
+        base_x = labels_row.mapTo(panel, labels_row.rect().topLeft()).x()
+        for attr in ("b_hist_labels", "b_hist_l2", "b_hist_l3", "b_hist_excl"):
+            row = getattr(win, attr, None)
+            assert row is not None, "%s 不见了（曾用词行被删了？）" % attr
+            row_x = row.mapTo(panel, row.rect().topLeft()).x()
+&gt;           assert abs(row_x - base_x) &lt;= 1, (
+                "%s 左缘 x=%d，应等于面板内容左缘 %d（还套着占位标签？）"
+                % (attr, row_x, base_x))
+E           AssertionError: b_hist_labels 左缘 x=107，应等于面板内容左缘 9（还套着占位标签？）
+E           assert 98 &lt;= 1
+E            +  where 98 = abs((107 - 9))
+
+tests\test_r80_desktop_items.py:272: AssertionError</failure></testcase></testsuite></testsuites>

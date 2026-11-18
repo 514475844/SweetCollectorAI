@@ -1,0 +1,146 @@
+........................................................................ [  3%]
+........................s............................................... [  7%]
+........................................................................ [ 11%]
+........................................................................ [ 15%]
+........................................................................ [ 19%]
+...............ss.......................................s............... [ 23%]
+........................................s............................... [ 27%]
+........................................................................ [ 31%]
+........................................................................ [ 35%]
+........................................................................ [ 39%]
+....................................F................................... [ 43%]
+........................................................................ [ 47%]
+.........................F.F............................................ [ 51%]
+........................................................................ [ 55%]
+........................................................................ [ 59%]
+........................................................................ [ 63%]
+........................................................................ [ 67%]
+........................................................................ [ 71%]
+........................................................................ [ 75%]
+........................................................................ [ 79%]
+........................................................................ [ 83%]
+........................................................................ [ 87%]
+........................................................................ [ 91%]
+........................................................................ [ 94%]
+........................................................................ [ 98%]
+...................                                                      [100%]
+================================== FAILURES ===================================
+_____________________ test_three_watermark_overlays_exist _____________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0xe89f0f2360) at 0x000002032673FFC0>
+
+    def test_three_watermark_overlays_exist(win):
+        """三页各一个浮层（主 + 审核 + 图库）—— 少一个就有一页看不见水印。"""
+        wms = getattr(win, "_watermarks", [])
+>       assert len(wms) == 3, f"水印浮层数不对：{len(wms)}"
+E       AssertionError: 水印浮层数不对：1
+E       assert 1 == 3
+E        +  where 1 = len([<media_resource_manager.gui.watermark.WatermarkOverlay(0xe8a2a74f00) at 0x0000020328949C40>])
+
+tests\test_r50_production_desktop.py:67: AssertionError
+_________________ test_mainwindow_watermark_is_not_fullwindow _________________
+
+qapp = <PySide6.QtWidgets.QApplication(0xe8a01498e0) at 0x000002031C942440>
+
+    def test_mainwindow_watermark_is_not_fullwindow(qapp):
+        """真 MainWindow：水印浮层必须是**左下角**小方框（R48/A1），且不铺满 stack。"""
+        from media_resource_manager.gui.main_window import MainWindow
+        from media_resource_manager.gui.watermark import BOX_MAX, INSET
+    
+        w = MainWindow()
+        w._ensure_single_instance = lambda *a, **k: True
+        try:
+            w.resize(1382, 899)
+            w.show()
+            qapp.processEvents()
+            wm = getattr(w, "_watermark", None)
+            st = getattr(w, "stack", None)
+            assert wm is not None and st is not None
+            g = wm.geometry()
+            assert g.width() <= BOX_MAX + 2 * INSET and g.height() <= BOX_MAX + 2 * INSET, (
+                f"真机水印浮层不是小方框：{g.getRect()}")
+            assert g.width() < st.width() and g.height() < st.height(), (
+                "真机水印浮层又铺满 stack 了")
+            # 【2026-10-09 / R48-A1】左下角锚定（作业单 A1 从右下改左下，与上面两条同一口径）
+            # R176：左边从 INSET+OFFSET_X 收成 LEFT_INSET（「继续往左移」）；
+            #   纵向不再贴底，改锚左侧导航（任务/审核/图库/隔离区）正下方
+            #   ⇒ 贴底断言换成「不许出容器」+「顶边贴导航底边」。
+            from media_resource_manager.gui.watermark import (
+                BELOW_GAP, LEFT_INSET)
+            from PySide6.QtCore import QPoint
+>           assert abs(LEFT_INSET - g.x()) <= 1, \
+                f"真机水印左边锚定不对 {g.getRect()} / stack={st.width()}"
+E               AssertionError: 真机水印左边锚定不对 (12, 557, 91, 260) / stack=1260
+E               assert 8 <= 1
+E                +  where 8 = abs((4 - 12))
+E                +    where 12 = <built-in method x of PySide6.QtCore.QRect object at 0x0000020325A500C0>()
+E                +      where <built-in method x of PySide6.QtCore.QRect object at 0x0000020325A500C0> = PySide6.QtCore.QRect(12, 557, 91, 260).x
+
+tests\test_r57_watermark_overlay_geometry.py:186: AssertionError
+_________________ test_mainpage_watermark_visible_bottomright _________________
+
+qapp = <PySide6.QtWidgets.QApplication(0xe8a01498e0) at 0x000002031C942440>
+
+    def test_mainpage_watermark_visible_bottomright(qapp):
+        """主页面（任务页）**左下角**水印仍然可见（#43 不能被这次修复带没）。
+    
+        现象 1 的根因是 `QStackedWidget QWidget` 把后代控件全刷透明。修成子选择器
+        后控件恢复了底色，但水印也可能被不透明面板挡住 —— 这条锁「主页面右下角
+        还能看见水印」，防止修复按钮时把水印一起修没。
+        """
+        from media_resource_manager.gui import theme
+        from media_resource_manager.gui.main_window import MainWindow
+    
+        for dark in (False, True):
+            qapp.setStyleSheet(theme.DARK_QSS if dark else theme.LIGHT_QSS)
+            w = MainWindow()
+            w._ensure_single_instance = lambda *a, **k: True
+            try:
+                w.resize(1382, 899)
+                w.show()
+                qapp.processEvents()
+                w.stack.setCurrentIndex(0)          # 任务页（用户真机默认页）
+                for _ in range(4):
+                    qapp.processEvents()
+                # R176：取证改在 **stack 坐标** 里做（整窗 grab 会把菜单栏/
+                # 工具条的偏移混进来，见本轮探针记录）。
+                a = w.stack.grab().toImage()
+                wm = w._watermark
+                wm.hide()
+                for _ in range(4):
+                    qapp.processEvents()
+                b = w.stack.grab().toImage()
+                wm.show()
+                for _ in range(4):
+                    qapp.processEvents()
+                W, H = a.width(), a.height()
+                changed = 0
+                minx = miny = 10 ** 9
+                for y in range(H):
+                    for x in range(W):
+                        ca, cb = a.pixelColor(x, y), b.pixelColor(x, y)
+                        if abs(ca.red() - cb.red()) + abs(ca.green() - cb.green()) \
+                                + abs(ca.blue() - cb.blue()) > 3:
+                            changed += 1
+                            minx = min(minx, x)
+                            miny = min(miny, y)
+>               assert changed > 500, f"dark={dark} 任务页左下角水印不可见了（{changed}px）"
+E               AssertionError: dark=False 任务页左下角水印不可见了（0px）
+E               assert 0 > 500
+
+tests\test_r57_watermark_overlay_geometry.py:305: AssertionError
+============================== warnings summary ===============================
+tests/test_r38_pump_main_task.py::test_loop_not_running_is_the_silent_failure_mode
+  C:\Users\Admin\Sweet\tests\test_r38_pump_main_task.py:154: RuntimeWarning: coroutine 'test_loop_not_running_is_the_silent_failure_mode.<locals>._never' was never awaited
+    with pytest.raises(RuntimeError):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_r56_accum_forensics.py::test_no_dict_star_unpack_environ_with_extra_kwargs
+  <unknown>:20: DeprecationWarning: invalid escape sequence '\p'
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r50_production_desktop.py::test_three_watermark_overlays_exist
+FAILED tests/test_r57_watermark_overlay_geometry.py::test_mainwindow_watermark_is_not_fullwindow
+FAILED tests/test_r57_watermark_overlay_geometry.py::test_mainpage_watermark_visible_bottomright

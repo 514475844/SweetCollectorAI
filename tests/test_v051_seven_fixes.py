@@ -116,11 +116,13 @@ def test_more_models_including_big_vram():
 
 
 # ── ⑦ 适配器在线 AI ──────────────────────────────────────
-def test_adapter_ai_source_explained_and_prompt_copy():
+# V0.0.54 用户定案：前端移除「自动生成规则 / 别的 AI 生成」入口，改走
+# 适配器市场。后端 /api/adapter/prompt 等接口保留不动（别的调用方还在），
+# 但界面必须不再出现这两块。
+def test_adapter_ai_ui_removed_routes_kept():
     s = (WEB / "views/Adapters.vue").read_text(encoding="utf-8")
-    assert "识别方式＝在线接口" in s
-    assert "copyPrompt" in s and "adapterPrompt" in s
-    assert "fromReply" in s and "把别的 AI 给的 JSON 规则粘贴到这里" in s
+    assert "自动生成规则" not in s and "copyPrompt" not in s and "fromReply" not in s
+    assert "适配器市场" in s
     ui = _read("media_resource_manager/webui.py")
     for route in ('"/api/adapter/prompt"', '"/api/adapter/from-reply"'):
         assert route in ui

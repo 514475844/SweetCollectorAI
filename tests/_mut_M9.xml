@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="4.860" timestamp="2026-10-12T11:46:24.276612+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_every_skin_still_shows_its_accent[violet_look]" time="0.675"><failure message="AssertionError: violet_look 皮肤画面里强调色 #8b7cf8 只剩 0 个取样点 —— 换皮肤看不出来&#10;assert 0 &gt; 100">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x21c8e2719a0) at 0x0000021C90CAA280&gt;
+preset = 'violet_look'
+
+    @pytest.mark.parametrize("preset", ["violet_look", "modern", "night",
+                                        "qbittorrent"])
+    def test_every_skin_still_shows_its_accent(win, preset):
+        """项3 的补偿护栏：撤掉 4 个按钮后，每个皮肤的画面上仍要看得到强调色。
+    
+        真事：4 个按钮是 modern 画面里**唯一**的强调色来源（QPushButton 默认
+        样式就是强调色底），撤 buttons 后实测 modern 整窗 0 个强调色像素 ——
+        换皮肤用户看不出来（test_r68 的「强调色因果」当场抓红）。
+        修法：导航选中态改强调色实底（见 theme.py #navbtn:checked）。
+        这条把 r68 只查 modern 的那条**推广到全部四个非原生皮肤**
+        （violet_look 原先也是 0 —— r68 的覆盖缺口）。
+    
+        阈值取 100 个取样点（step=2）：选中导航块约 210×56px ≈ 2.9k 取样点，
+        留两个数量级余量，又不是「有就行」的摆设。
+        """
+        win.set_skin(preset)
+        app = QApplication.instance()
+        for _ in range(3):
+            app.processEvents()
+        img = win.grab().toImage()
+        # 暗色皮肤画的是 ACCENT_D（深色 QSS 用 {ACCENT_D}），浅色画 ACCENT ——
+        # 拿浅色那档去数暗夜风，恒 0（本轮仪器错，别拿去"修"产品）。
+        accent = theme.SKINS[theme.preset_accent(preset)][
+            1 if theme.preset_dark(preset) else 0]
+        r, g, b = _hx(accent)
+        n = 0
+        for y in range(0, img.height(), 2):
+            for x in range(0, img.width(), 2):
+                p = img.pixel(x, y)
+                if (((p &gt;&gt; 16) &amp; 255), ((p &gt;&gt; 8) &amp; 255), p &amp; 255) == (r, g, b):
+                    n += 1
+&gt;       assert n &gt; 100, (
+            "%s 皮肤画面里强调色 %s 只剩 %d 个取样点 —— 换皮肤看不出来"
+            % (preset, accent, n))
+E       AssertionError: violet_look 皮肤画面里强调色 #8b7cf8 只剩 0 个取样点 —— 换皮肤看不出来
+E       assert 0 &gt; 100
+
+tests\test_r80_desktop_items.py:197: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_every_skin_still_shows_its_accent[modern]" time="0.408"><failure message="AssertionError: modern 皮肤画面里强调色 #4a90e2 只剩 0 个取样点 —— 换皮肤看不出来&#10;assert 0 &gt; 100">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x21c8e2719a0) at 0x0000021C90CAA280&gt;
+preset = 'modern'
+
+    @pytest.mark.parametrize("preset", ["violet_look", "modern", "night",
+                                        "qbittorrent"])
+    def test_every_skin_still_shows_its_accent(win, preset):
+        """项3 的补偿护栏：撤掉 4 个按钮后，每个皮肤的画面上仍要看得到强调色。
+    
+        真事：4 个按钮是 modern 画面里**唯一**的强调色来源（QPushButton 默认
+        样式就是强调色底），撤 buttons 后实测 modern 整窗 0 个强调色像素 ——
+        换皮肤用户看不出来（test_r68 的「强调色因果」当场抓红）。
+        修法：导航选中态改强调色实底（见 theme.py #navbtn:checked）。
+        这条把 r68 只查 modern 的那条**推广到全部四个非原生皮肤**
+        （violet_look 原先也是 0 —— r68 的覆盖缺口）。
+    
+        阈值取 100 个取样点（step=2）：选中导航块约 210×56px ≈ 2.9k 取样点，
+        留两个数量级余量，又不是「有就行」的摆设。
+        """
+        win.set_skin(preset)
+        app = QApplication.instance()
+        for _ in range(3):
+            app.processEvents()
+        img = win.grab().toImage()
+        # 暗色皮肤画的是 ACCENT_D（深色 QSS 用 {ACCENT_D}），浅色画 ACCENT ——
+        # 拿浅色那档去数暗夜风，恒 0（本轮仪器错，别拿去"修"产品）。
+        accent = theme.SKINS[theme.preset_accent(preset)][
+            1 if theme.preset_dark(preset) else 0]
+        r, g, b = _hx(accent)
+        n = 0
+        for y in range(0, img.height(), 2):
+            for x in range(0, img.width(), 2):
+                p = img.pixel(x, y)
+                if (((p &gt;&gt; 16) &amp; 255), ((p &gt;&gt; 8) &amp; 255), p &amp; 255) == (r, g, b):
+                    n += 1
+&gt;       assert n &gt; 100, (
+            "%s 皮肤画面里强调色 %s 只剩 %d 个取样点 —— 换皮肤看不出来"
+            % (preset, accent, n))
+E       AssertionError: modern 皮肤画面里强调色 #4a90e2 只剩 0 个取样点 —— 换皮肤看不出来
+E       assert 0 &gt; 100
+
+tests\test_r80_desktop_items.py:197: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_every_skin_still_shows_its_accent[night]" time="0.409" /><testcase classname="tests.test_r80_desktop_items" name="test_every_skin_still_shows_its_accent[qbittorrent]" time="0.476" /></testsuite></testsuites>

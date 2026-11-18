@@ -1000,7 +1000,7 @@ def _split_word_list(value) -> list:
 
     复用 config.split_blacklist_words：按中英文逗号/顿号/分号/换行/竖线拆，
     去空白去重去引号。Web 前端常整串粘贴（中文逗号），老逻辑只按空白+英文
-    逗号拆会把"颜射，老，黑女"当**一个**词存进去，消费侧永不命中。
+    逗号拆会把"词A，词B，词C"当**一个**词存进去，消费侧永不命中。
     导入失败（纯 Web 环境异常）时退回本地拆分，不拖垮保存。
     """
     try:
@@ -1282,7 +1282,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _host_header_ok(self) -> bool:
         """编号 29：Host 头校验，防 DNS 重绑定。
 
-        攻击场景：恶意站把自己的域名解析到 `192.168.1.100`（你的机器），
+        攻击场景：恶意站把自己的域名解析到 `192.168.1.5`（你的机器），
         再用 `http://evil.com:8080/` 让受害者浏览器去访问 —— 请求会打到我们
         的 Web 服务上，而**浏览器的同源判断认的是 evil.com**，等于绕过了同源
         保护。校验 Host 是不是"我们认得的地址"就能挡住。
@@ -1566,7 +1566,7 @@ class _Handler(BaseHTTPRequestHandler):
         if ip.startswith("192.168."):
             return True
         if ip.startswith("172."):
-            try:                # 172.17.0.1/12
+            try:                # 172.16.0.0/12
                 if 16 <= int(ip.split(".")[1]) <= 31:
                     return True
             except (ValueError, IndexError):
@@ -2118,6 +2118,15 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(self._api_summary())
             if path == "/api/settings":
                 return self._json(self._api_settings())
+            # V0.0.55 批1：定时关机的**实时计划**（配置里的字段只记每日
+            # 定点；on_idle/一次性只活在内存里，前端要显示"今晚安排了什么"
+            # 必须查这个，不能读配置——读了永远空）
+            if path == "/api/powerdown":
+                try:
+                    from . import powerdown
+                    return self._json({"ok": True, "plan": powerdown.status()})
+                except Exception as e:                   # noqa: BLE001
+                    return self._json({"ok": False, "error": f"读取计划失败：{e}"})
             # ---- 2026-10-28：站点订阅（编号 21/22）+ 本机网卡（编号 32）----
             if path == "/api/subs":
                 return self._json(self._api_subs())
@@ -2263,6 +2272,11 @@ class _Handler(BaseHTTPRequestHandler):
             # rule_text，这里是给「只拿到名字」的场景兜底）
             if path == "/api/adapter/get":
                 return self._json(self._api_adapter_get(u))
+            # V0.0.54：适配器市场 —— 订阅源列表 / 拉源目录（GET 侧）
+            if path == "/api/market/sources":
+                return self._json(self._api_market_sources())
+            if path == "/api/market/index":
+                return self._json(self._api_market_index(u))
             # R251：站点 Cookie（按域名存档，插件推送 / JSON 导入 / 手动删）
             if path == "/api/cookies":
                 return self._json(self._api_cookies())
@@ -2565,6 +2579,13 @@ class _Handler(BaseHTTPRequestHandler):
             # 用户粘贴一堆网址就想直接开工，不想过一遍 20 个字段。
             if path == "/api/task/quick":
                 return self._json(self._api_task_quick(self._body()))
+            # V0.0.55 批1：手机收件口 —— 安卓壳把分享来的链接 POST 到这里，
+            # 自动匹配适配器建任务并立即运行。鉴权复用本管道（壳登录一次存 Cookie）。
+            if path == "/api/inbox/link":
+                return self._json(self._api_inbox_link(self._body()))
+            # V0.0.55 批1：定时自动关机（任务跑完关 / 每日定点关 / 取消）
+            if path == "/api/powerdown":
+                return self._json(self._api_powerdown(self._body()))
             # ---- 2026-10-28：站点订阅的写操作（编号 21/22）----
             if path == "/api/sub/save":
                 return self._json(self._api_sub_save(self._body()))
@@ -2603,6 +2624,11 @@ class _Handler(BaseHTTPRequestHandler):
             # V0.0.23：读一条已有规则的原文（网页端「编辑」「本地导入后核对」用）
             if path == "/api/adapter/get":
                 return self._json(self._api_adapter_get(u))
+            # V0.0.54：适配器市场 —— 改订阅源 / 安装规则（POST 侧）
+            if path == "/api/market/manage":
+                return self._json(self._api_market_manage(self._body()))
+            if path == "/api/market/install":
+                return self._json(self._api_market_install(self._body()))
             if path == "/api/adapter/delete":
                 return self._json(self._api_adapter_delete(self._body()))
             # ---- R79 #41 / #44 ----
@@ -3952,6 +3978,84 @@ class _Handler(BaseHTTPRequestHandler):
                 p.unlink()
                 return {"ok": True, "name": name, "file": p.name}
         return {"ok": False, "error": f"没有找到名为「{name}」的规则"}
+
+    # ───────────────── V0.0.54 · 适配器市场（规则订阅源） ─────────────────
+    #
+    # 三个接口：列订阅源 / 拉某个源目录 / 安装一条规则。
+    # 安装**不另写落盘路径**——下载原文后直接走 _api_adapter_save 那道
+    # 与手动新建完全相同的校验链（解析、名字、选择器类型、重名保护），
+    # 多写一份就会漂移一份，市场来的规则没有资格享受特判。
+
+    def _api_market_sources(self):
+        """GET /api/market/sources → 已订阅源 + 官方市场默认项。"""
+        from . import rule_market as rm
+        return {"ok": True, "sources": rm.load_sources(self.cfg),
+                "default": rm.DEFAULT_SOURCE_URL}
+
+    def _api_market_index(self, u):
+        """GET /api/market/index?url=<源地址> → 拉清单（浏览市场目录）。"""
+        from . import rule_market as rm
+        url = str((parse_qs(u.query).get("url") or [""])[0]).strip()
+        if not url:
+            return {"ok": False, "error": "缺少订阅源地址"}
+        try:
+            return rm.fetch_index(url, cfg=self.cfg)
+        except rm.MarketError as e:
+            return {"ok": False, "error": str(e)}
+
+    def _api_market_manage(self, body):
+        """POST /api/market/manage {action: add|remove, url} → 管订阅源。"""
+        from . import rule_market as rm
+        body = body if isinstance(body, dict) else {}
+        action = str(body.get("action") or "").strip().lower()
+        url = str(body.get("url") or "").strip()
+        if not url:
+            return {"ok": False, "error": "缺少订阅源地址"}
+        urls = rm.load_sources(self.cfg)
+        if action == "add":
+            if not url.lower().startswith(("http://", "https://")):
+                return {"ok": False, "error": "订阅源地址必须以 http(s):// 开头"}
+            if url in urls:
+                return {"ok": False, "error": "这个订阅源已经添加过了"}
+            # 先验证能拉到再存 —— 存一个坏源不如当场报错
+            try:
+                info = rm.fetch_index(url, cfg=self.cfg)
+            except rm.MarketError as e:
+                return {"ok": False, "error": str(e)}
+            rm.save_sources(self.cfg, urls + [url])
+            return {"ok": True, "sources": urls + [url], "name": info.get("name")}
+        if action == "remove":
+            rest = [x for x in urls if x != url]
+            if len(rest) == len(urls):
+                return {"ok": False, "error": "这个订阅源不在列表里"}
+            rm.save_sources(self.cfg, rest)
+            return {"ok": True, "sources": rest}
+        return {"ok": False, "error": "action 仅支持 add / remove"}
+
+    def _api_market_install(self, body):
+        """POST /api/market/install {url, overwrite?} → 下载并安装一条规则。
+
+        下载 → 复用 _api_adapter_save（校验 + 落盘 + 审计一步不少）。
+        """
+        from . import rule_market as rm
+        body = body if isinstance(body, dict) else {}
+        url = str(body.get("url") or "").strip()
+        if not url:
+            return {"ok": False, "error": "缺少规则文件地址"}
+        try:
+            text = rm.fetch_rule_preview(url, cfg=self.cfg)
+        except rm.MarketError as e:
+            return {"ok": False, "error": str(e)}
+        name = str(body.get("name") or "").strip()
+        r = self._api_adapter_save({"rule": text, "name": name,
+                                    "overwrite": bool(body.get("overwrite"))})
+        if r.get("ok"):
+            try:
+                self.db.audit(self._actor(), "market_install",
+                              str(r.get("name") or name or url)[:64], url[:200])
+            except Exception:
+                pass
+        return r
 
     def _api_images(self, view: str, cursor: int, limit: int,
                     sort: str = "time", q: str = "",
@@ -5755,6 +5859,121 @@ class _Handler(BaseHTTPRequestHandler):
                 "note": ("" if started or not want_start else
                          "任务已创建，但队列未启动（Web 端未启用调度），请手工启动")}
 
+    def _api_inbox_link(self, body) -> dict:
+        """V0.0.55 批1：手机收件口。安卓壳分享来的链接 → 建任务并立即运行。
+
+        入参：{"link": "网页链接或含链接的分享文本"}
+        流程：抠链接 → 校验 → 同链接未结束任务去重 → 匹配适配器 →
+        建任务（adapter_name 留空 = 运行期自动匹配，与桌面/网页同一条引擎链）
+        → 入队。返回给壳一个可提示的结果。
+        """
+        from .inbox import clean_link, is_reachable_site, find_open_task_for
+        link = clean_link((body or {}).get("link"))
+        if not link:
+            return {"ok": False, "error": "没有识别到网页链接"}
+        good, why = is_reachable_site(link)
+        if not good:
+            return {"ok": False, "error": why}
+        dup = find_open_task_for(self.db, link)
+        if dup is not None:
+            return {"ok": True, "task_id": dup, "deduped": True,
+                    "name": "已有同一链接的任务在跑", "started": True}
+        # 匹配一条域名对得上的规则，纯粹为了把任务名起得更认得出；
+        # 匹配不到也照建（引擎运行期会走通用采集兜底）。
+        rule = None
+        try:
+            from .crawler.rules import match_adapter
+            rule = match_adapter(self.cfg.rules_dir, [link])
+        except Exception:                                  # noqa: BLE001
+            rule = None
+        name = (getattr(rule, "name", "") if rule else "") or \
+            (urlsplit(link).netloc or "收件任务")
+        try:
+            from .models import TaskConfig
+            from .repo import save_task
+            tcfg = TaskConfig(
+                id=None, name=("收 " + name)[:80], adapter_name="",
+                entry_urls=[link],
+                max_depth=int(getattr(self.cfg, "max_depth", 3) or 3),
+                concurrency=int(getattr(self.cfg, "concurrency", 4) or 4),
+                delay=float(getattr(self.cfg, "delay", 0.5) or 0.5),
+            )
+            tid = save_task(self.db, tcfg)
+        except Exception as ex:                            # noqa: BLE001
+            return {"ok": False,
+                    "error": f"建任务失败：{type(ex).__name__}: {ex}"}
+        q = getattr(self.server, "queue", None)
+        started = False
+        if q is not None:
+            try:
+                q.submit(int(tid))
+                started = True
+            except Exception:                              # noqa: BLE001
+                started = False
+        try:
+            self.db.audit(self._actor(), "inbox_link", str(tid), name[:80])
+        except Exception:                                  # noqa: BLE001
+            pass
+        return {"ok": True, "task_id": int(tid), "name": tcfg.name,
+                "adapter": (getattr(rule, "name", "") if rule else ""),
+                "started": started}
+
+    def _api_powerdown(self, body) -> dict:
+        """V0.0.55 批1：定时自动关机设置入口（网页/壳共用）。
+
+        入参：{"mode": "off"|"on_idle"|"at_time",
+               "at": "HH:MM"(每日定点, 可空=只这一次用 target 字段),
+               "target": epoch秒(一次性定点), "daily": true/false,
+               "countdown": 秒, "idle_grace": 秒}
+        校验链与真关机执行都在 powerdown 模块，这里只做参数搬运 +
+        配置持久化（重启后每日计划能自动续上）。
+        """
+        from . import powerdown
+        from .config import save_config
+        mode = str((body or {}).get("mode") or "").strip()
+        if mode not in ("off", "on_idle", "at_time"):
+            return {"ok": False, "error": "未知的关机模式"}
+        daily = bool((body or {}).get("daily"))
+        at_hhmm = str((body or {}).get("at") or "").strip()
+        target = (body or {}).get("target")
+        try:
+            target = float(target or 0)
+        except (TypeError, ValueError):
+            target = 0.0
+        q = getattr(self.server, "queue", None)
+        if mode == "off":
+            r = powerdown.cancel()
+        elif mode == "at_time" and daily and at_hhmm:
+            r = powerdown.schedule("at_time", at_hhmm=at_hhmm, daily=True,
+                                   countdown=int((body or {}).get("countdown") or 60),
+                                   queue=q)
+        elif mode == "at_time":
+            r = powerdown.schedule("at_time", target_ts=target,
+                                   countdown=int((body or {}).get("countdown") or 60),
+                                   queue=q)
+        else:
+            r = powerdown.schedule(
+                "on_idle", countdown=int((body or {}).get("countdown") or 60),
+                idle_grace=int((body or {}).get("idle_grace") or 180), queue=q)
+        if not r.get("ok"):
+            return r
+        # 持久化只记「每日定点」计划：重启后 resume_from_cfg 续跑。
+        # on_idle / 一次性 at_time 不落盘 —— 那属于"今晚"的安排，机器都
+        # 重启过了还复活，等于把用户下次开机也安排了关机，是事故。
+        try:
+            persist = (mode == "at_time" and daily and at_hhmm)
+            self.cfg.auto_shutdown_mode = "at_time" if persist else "off"
+            self.cfg.auto_shutdown_countdown = int(
+                (body or {}).get("countdown") or 60)
+            self.cfg.auto_shutdown_at = at_hhmm if persist else ""
+            self.cfg.auto_shutdown_daily = 1 if persist else 0
+            save_config(self.cfg)
+        except Exception as e:                           # noqa: BLE001
+            return {"ok": True,
+                    "warning": f"计划已生效，但配置未能保存（重启后不续）：{e}",
+                    "plan": powerdown.status()}
+        return {"ok": True, "plan": powerdown.status()}
+
     # ---------------- 2026-10-28：站点订阅 / 新图监控（编号 21、22）----------
     def _subs_payload(self) -> list[dict]:
         try:
@@ -6888,7 +7107,7 @@ class _Handler(BaseHTTPRequestHandler):
                             "where": where, "remote": remote}
                 items = []
                 for cand in ("/data", "/library", "/mnt", "/media", "/volume1",
-                             "<nas-path>", "<nas-path>", "/home", "/"):
+                             "/vol1", "/vol2", "/home", "/"):
                     try:
                         if Path(cand).is_dir():
                             items.append({"name": cand, "path": cand})
@@ -9196,6 +9415,9 @@ class _Handler(BaseHTTPRequestHandler):
         # 界面与启动
         "confirm_exit_running", "prevent_sleep", "splash_enabled",
         "resume_on_start", "resume_downloads", "resume_tags", "resume_imports",
+        # V0.0.55 批1：定时自动关机（前端初始显示用；改计划走 POST /api/powerdown）
+        "auto_shutdown_mode", "auto_shutdown_countdown",
+        "auto_shutdown_idle_grace", "auto_shutdown_at", "auto_shutdown_daily",
         # V0.0.27：启动后直接收进托盘（网页端可改，下次启动生效；
         # 桌面版与 SweetWeb 客户端共用同一份配置）
         "tray_start_minimized",
@@ -9415,7 +9637,7 @@ class _Handler(BaseHTTPRequestHandler):
             # 先拆成 list 再落盘；否则写入的会是一个字符串而非数组。
             # 2026-11-05：global_blacklist / sensitive_words 用专用拆分器——
             # 这两个字段是 CJK 子串匹配，前端常整串粘贴（中文逗号分隔），
-            # 按空白+英文逗号拆会留下"颜射，老，黑女"这种整串，永不命中。
+            # 按空白+英文逗号拆会留下"词A，词B，词C"这种整串，永不命中。
             if k in ("global_blacklist", "sensitive_words"):
                 if isinstance(v, str):
                     nv = _split_word_list(v)
@@ -9489,6 +9711,14 @@ class _Handler(BaseHTTPRequestHandler):
             save_config(self.cfg)
         except Exception as e:
             return {"ok": False, "error": f"保存设置失败：{e}"}
+        # V0.0.55 批1：改动里有关机设置 → 让内存计划跟着配置走。
+        # 配置是每日定点的唯一事实源（前端直接改下拉也能生效）。
+        if any(str(k).startswith("auto_shutdown_") for k in changed):
+            try:
+                from . import powerdown
+                powerdown.apply_cfg(self.cfg, getattr(self.server, "queue", None))
+            except Exception:                            # noqa: BLE001
+                pass
         out = {"ok": True, "changed": changed}
         # V0.0.23：设置改动以前**完全不记日志** —— 用户翻日志只能看到「保存任务」
         # 那几条，自然会问「我改的设置去哪了」。这里记一条，详情写清改了哪几项。

@@ -1,0 +1,63 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+........................................................................ [ 16%]
+........................................................................ [ 22%]
+........................................................................ [ 28%]
+.........................................ss............................. [ 33%]
+..........s......................................................s...... [ 39%]
+........................................................................ [ 45%]
+........s............................................................... [ 50%]
+........................................................................ [ 56%]
+........................................................................ [ 62%]
+........................................................................ [ 67%]
+........................................................................ [ 73%]
+........................................................................ [ 79%]
+.........................F.............................................. [ 84%]
+........................................................................ [ 90%]
+........................................................................ [ 96%]
+................................................                         [100%]
+================================== FAILURES ===================================
+______________________ test_style_applies_and_registers _______________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x24fae8197f0) at 0x0000024FB9290B40>
+
+    def test_style_applies_and_registers(qapp):
+        """style() 要真的设上样式，并在登记表里留下这个控件。"""
+        from PySide6.QtWidgets import QLabel
+        from media_resource_manager.gui import theme
+        lab = QLabel("x")
+        theme._reset_style_registry()
+        theme.style(lab, "color:{text_dim};")
+>       assert theme.css(False, "color:{text_dim};") in lab.styleSheet()
+E       AssertionError: assert 'color:#5a6271;' in 'color:#aab1bd;'
+E        +  where 'color:#5a6271;' = <function css at 0x0000024FB0388EA0>(False, 'color:{text_dim};')
+E        +    where <function css at 0x0000024FB0388EA0> = <module 'media_resource_manager.gui.theme' from 'C:\\Users\\admin\\Sweet\\media_resource_manager\\gui\\theme.py'>.css
+E        +  and   'color:#aab1bd;' = <built-in method styleSheet of PySide6.QtWidgets.QLabel object at 0x0000024FBB7A6500>()
+E        +    where <built-in method styleSheet of PySide6.QtWidgets.QLabel object at 0x0000024FBB7A6500> = <PySide6.QtWidgets.QLabel(0x24fc97073f0) at 0x0000024FBB7A6500>.styleSheet
+
+tests\test_r67_inline_style_skin.py:244: AssertionError
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:72: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:35: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:120: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+tests/test_r38_pump_main_task.py::test_loop_not_running_is_the_silent_failure_mode
+  C:\Users\admin\Sweet\tests\test_r38_pump_main_task.py:154: RuntimeWarning: coroutine 'test_loop_not_running_is_the_silent_failure_mode.<locals>._never' was never awaited
+    with pytest.raises(RuntimeError):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r67_inline_style_skin.py::test_style_applies_and_registers

@@ -292,6 +292,8 @@ class AppConfig:
     # 或某个软件目录是指向外部的链接，这些目录里的文件也一律不许删/移/改名。
     # 导入文件夹时自动登记（见 safe_delete.mark_external_root）。
     external_library_roots: list[str] = field(default_factory=list)
+    # V0.0.54：适配器市场订阅源（index.json 网址列表）。默认含官方市场。
+    rule_market_sources: list[str] = field(default_factory=list)
     # F3：config.json 里的未知键（旧版本字段、手改键、未来版本的键）加载时
     # 保留在这里，保存时原样带回，不再被静默吞掉；_DEAD_CONFIG_KEYS 例外。
     extra: dict = field(default_factory=dict)
@@ -529,6 +531,18 @@ class AppConfig:
     # "pro"=老鸟（全部入口）。默认老鸟——老用户现状零变化。
     ui_mode: str = "pro"
 
+    # V0.0.55 批1：定时自动关机（powerdown.py）。
+    # off=不启用；on_idle=任务全部跑完后关；at_time=到点关。默认全关。
+    auto_shutdown_mode: str = "off"
+    #: 关机倒计时秒（给用户反悔窗口），最小 15
+    auto_shutdown_countdown: int = 60
+    #: on_idle 模式：队列需连续空闲这么多秒才算"跑完"，最小 30
+    auto_shutdown_idle_grace: int = 180
+    #: at_time 模式：每日定点 "HH:MM"（过点则顺延到明天同一时刻）
+    auto_shutdown_at: str = ""
+    #: 1 = 每日重复（重启/关机后计划自动续到明天）；0 = 只这一次
+    auto_shutdown_daily: int = 0
+
     # V0.0.19 毛玻璃（Win11 Acrylic / Mica，Win10 半透明近似）。
     # 默认关：系统级背板在远程桌面 / 部分显卡驱动下会黑屏，稳一手。
     glass_enabled: bool = False
@@ -736,7 +750,7 @@ class AppConfig:
         if unknown:
             cfg.extra = dict(unknown)
         # 2026-11-05：存量黑名单整串拆分（历史 config.json 里可能存过
-        # 「颜射，老，黑女，…」这样的一整串）。拆分在**读取路径**做，幂等：
+        # 「词A，词B，词C，…」这样的一整串）。拆分在**读取路径**做，幂等：
         # 已经是单词的列表再跑一遍结果不变，所以老用户升级后启动即自愈，
         # 下一次 save_config 把拆好的形态写回磁盘。
         try:
@@ -785,7 +799,7 @@ def split_blacklist_words(words) -> list[str]:
     """把传入的词（或含分隔符的一整串）拆成干净的黑名单词条列表。
 
     背景（2026-11-05 修复）：用户在设置框里一次性粘贴
-    ``"颜射，老，黑女，丑，……"`` 时，早期版本把这个含 13 个词的长串当成
+    ``"词A，词B，词C，……"`` 时，早期版本把这个含 13 个词的长串当成
     **一个**元素存进列表，消费侧 `_hit_blacklist` 要求 URL 里出现整个长串
     才命中 ⇒ 13 个词全部空转（只有"黑白照"靠灰度检测歪打正着还生效）。
     这里按中英文逗号 / 顿号 / 分号 / 换行 / 竖线统一拆开，去空白、去重、

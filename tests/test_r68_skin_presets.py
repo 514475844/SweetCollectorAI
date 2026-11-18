@@ -37,7 +37,7 @@ from pathlib import Path
 import pytest
 
 # 仓库根 = 本文件往上两层。2026-11-09 修：原来写死旧机器路径
-# <user-path> FileNotFoundError 假红。
+# C:\Users\admin\Sweet，换机后整条 FileNotFoundError 假红。
 ROOT = Path(__file__).resolve().parents[1]
 PKG = ROOT / "media_resource_manager"
 

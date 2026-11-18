@@ -384,7 +384,13 @@ def _run(db, cfg, folder: Path, *, task_id, force, do_tag, tag_threads,
                        ON CONFLICT(task_id, source_url) DO UPDATE SET
                          sha256=excluded.sha256, width=excluded.width,
                          height=excluded.height, bytes=excluded.bytes,
-                         path=excluded.path, ai_state=excluded.ai_state""",
+                         path=excluded.path
+                       -- 2026-11-18 修「打标不能断点」：原来这里带着
+                       -- ai_state=excluded.ai_state，force 重导会把整个任务
+                       -- 已打标的行统统重置回待打标，进度全丢、只能从头再打。
+                       -- 断点续打的权威状态就是 ai_state 本身：新行按参数
+                       -- 置 0/1，老行保留原值。真要重打走 wake_untagged_for_retag。
+                    """,
                     row)
 
     buf: list = []

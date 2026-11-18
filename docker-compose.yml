@@ -1,5 +1,9 @@
 # docker-compose.yml —— 挂机部署（订单 D1–D5）
-# 目标平台：x86_64 Linux（飞牛 FnOS / Debian / Ubuntu）。用法见 docker/README.md。
+# 目标平台：x86_64 与 arm64 双架构（V0.0.55 起）。arm64 小机器（如 2G 内存的
+# RK3399）建议把下面的并发与线程压低：MRM_AI_THREADS=2、AI 打标并发 1，
+# 慢但稳（10 万张按 1 分钟 1 张也就两个多月，挂机可等）。
+# 镜像 tag 随架构变：x86 机器保持 mrm:x86_64；ARM 机器改成 mrm:arm64
+# （或在 arm64 上直接 `docker compose build`，本机构建本机跑最省事）。
 
 services:
   mrm:
@@ -9,7 +13,7 @@ services:
       args:
         # C5：默认 0 = CPU 版 onnxruntime；改成 1 走 onnxruntime-gpu + CUDA
         USE_GPU: "0"
-    image: mrm:x86_64
+    image: mrm:${MRM_ARCH:-x86_64}
     container_name: mrm
     # D4：挂机场景必需（断电/崩溃后自动拉起）
     restart: unless-stopped
@@ -53,6 +57,11 @@ services:
       MRM_TRUST_PROXY: "0"
       # 自动任务巡检间隔（秒）。只对本进程有效，不写 config.json。
       MRM_INTERVAL: "3600"
+      # V0.0.55：AI 打标线程数。0 = 自动（封顶 4 且不超过核心一半）。
+      # 2G 内存的 ARM 小机器（RK3399 等）建议设 2，慢但内存稳。
+      MRM_AI_THREADS: "0"
+      # V0.0.55：抓取并发。小机器建议 2。
+      MRM_CONCURRENCY: "4"
     # D5：GPU 段（注释掉的示例。P600 只有 2GB 显存，默认不开；
     # 要开需宿主装 NVIDIA Container Toolkit，见 docker/README.md 常见问题）
     # deploy:

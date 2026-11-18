@@ -205,10 +205,11 @@ def test_backend_routes_exist():
 
 
 def test_frontend_wires_ai_generation():
+    # V0.0.54 用户定案：前端移除 AI 生成入口（改走适配器市场）。
+    # 后端接口与 api.js 封装保留（桌面端/别处仍可调用），界面不再出现。
     s = (PKG / "webapp/src/views/Adapters.vue").read_text(encoding="utf-8")
-    for k in ("自动生成规则", "genAi", "saveAi", "使用在线 AI", "本页匹配到"):
-        assert k in s, f"适配器页缺「{k}」"
-    assert "onUnmounted(stopAiTimer)" in s, "离开页面要停轮询"
+    for k in ("自动生成规则", "genAi", "saveAi", "使用在线 AI"):
+        assert k not in s, f"适配器页应已移除「{k}」"
     api = (PKG / "webapp/src/api.js").read_text(encoding="utf-8")
     assert "adapterAi:" in api and "adapterAiJob:" in api
 
@@ -223,7 +224,9 @@ def test_icons_used_by_ai_panel_exist():
 
 
 def test_built_bundle_contains_ai_panel():
+    # V0.0.54：构建产物改验「适配器市场」入口存在、AI 生成面板不在。
     d = PKG / "web/static/app/assets"
     js = "".join(p.read_text(encoding="utf-8", errors="replace")
                  for p in d.glob("*.js"))
-    assert "自动生成规则" in js, "前端没重新构建"
+    assert "适配器市场" in js, "前端没重新构建（缺市场入口）"
+    assert "自动生成规则" not in js, "构建产物里仍残留 AI 生成面板"

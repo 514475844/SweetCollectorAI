@@ -238,7 +238,7 @@ def test_webdav_second_run_reuses_downloads(env, dav_server):
 
 def test_webdav_rejects_non_http():
     db = cfg = None
-    res = wd.import_webdav(db, cfg, r"\\192.168.1.100\photo")
+    res = wd.import_webdav(db, cfg, r"\\192.168.1.2\photo")
     assert res["ok"] is False
     assert "http" in res["error"]
 

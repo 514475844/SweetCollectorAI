@@ -1,0 +1,116 @@
+.................................F.FF......                              [100%]
+================================== FAILURES ===================================
+________________ test_watermark_paints_pixels_in_bottom_right _________________
+
+    def test_watermark_paints_pixels_in_bottom_right():
+        """右下角像素必须真的被水印改动 —— 不能只验证控件存在。"""
+        pytest.importorskip("PySide6")
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication, QWidget
+        app = QApplication.instance() or QApplication([])
+        from media_resource_manager.gui.watermark import WatermarkOverlay
+    
+        host = QWidget()
+        host.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        host.resize(700, 300)
+        wm = WatermarkOverlay(alpha=40, parent=host)
+        wm.setGeometry(0, 0, 700, 300)
+        host.show()
+        app.processEvents()
+    
+        img = host.grab().toImage()
+    
+        def avg(x0, y0, x1, y1):
+            t = n = 0
+            for y in range(max(0, y0), min(img.height(), y1), 2):
+                for x in range(max(0, x0), min(img.width(), x1), 2):
+                    c = img.pixelColor(x, y)
+                    t += c.red() + c.green() + c.blue()
+                    n += 1
+            return t / max(1, n)
+    
+        br = avg(img.width() - 130, img.height() - 130, img.width() - 6,
+                 img.height() - 6)
+        tl = avg(6, 6, 130, 130)
+>       assert abs(br - tl) > 3, "右下角没有水印痕迹（只建了控件、没真画出来）"
+E       AssertionError: 右下角没有水印痕迹（只建了控件、没真画出来）
+E       assert 0.0 > 3
+E        +  where 0.0 = abs((0.0 - 0.0))
+
+tests\test_r40_batch_demands.py:420: AssertionError
+___________________ test_overlay_pixels_only_in_bottomright ___________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1a45ef18760) at 0x000001A45F664D00>
+
+    def test_overlay_pixels_only_in_bottomright(qapp):
+        """像素级：浮层画出的像素全部落在右下角，顶部/左上一条都不许有。"""
+        from media_resource_manager.gui.watermark import INSET
+    
+        stack, wm, theme = _mk_stack()
+        try:
+            qapp.setStyleSheet(theme.LIGHT_QSS)
+            stack.resize(1200, 800)
+            stack.show()
+            qapp.processEvents()
+            stack.resize(1201, 800)
+            qapp.processEvents()
+    
+            img = stack.grab().toImage()
+            W, H = img.width(), img.height()
+            # 蓝色水印像素的包围盒
+            minx, miny, maxx, maxy = 10 ** 9, 10 ** 9, -1, -1
+            cnt = 0
+            for y in range(H):
+                for x in range(W):
+                    c = img.pixelColor(x, y)
+                    if c.blue() > 180 and c.red() < 90 and c.green() < 90:
+                        cnt += 1
+                        if x < minx: minx = x
+                        if x > maxx: maxx = x
+                        if y < miny: miny = y
+                        if y > maxy: maxy = y
+            assert cnt > 200, f"没渲染出蓝色水印像素（cnt={cnt}）"
+            # 全部落在右下角 320x320 之内
+>           assert minx >= W - 320, f"水印像素跑到左边了 minx={minx} W={W}"
+E           AssertionError: 水印像素跑到左边了 minx=879 W=1201
+E           assert 879 >= (1201 - 320)
+
+tests\test_r57_watermark_overlay_geometry.py:135: AssertionError
+_________________ test_mainwindow_watermark_is_not_fullwindow _________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x1a45ef18760) at 0x000001A45F664D00>
+
+    def test_mainwindow_watermark_is_not_fullwindow(qapp):
+        """真 MainWindow：水印浮层必须是右下角小方框，且沉在最底（不盖控件）。"""
+        from media_resource_manager.gui.main_window import MainWindow
+        from media_resource_manager.gui.watermark import BOX_MAX, INSET
+    
+        w = MainWindow()
+        w._ensure_single_instance = lambda *a, **k: True
+        try:
+            w.resize(1382, 899)
+            w.show()
+            qapp.processEvents()
+            wm = getattr(w, "_watermark", None)
+            st = getattr(w, "stack", None)
+            assert wm is not None and st is not None
+            g = wm.geometry()
+            assert g.width() <= BOX_MAX + 2 * INSET and g.height() <= BOX_MAX + 2 * INSET, (
+                f"真机水印浮层不是小方框：{g.getRect()}")
+            assert g.width() < st.width() and g.height() < st.height(), (
+                "真机水印浮层又铺满 stack 了")
+>           assert abs((st.width() - INSET) - (g.x() + g.width())) <= 1
+E           assert 50 <= 1
+E            +  where 50 = abs(((1282 - 12) - (960 + 260)))
+E            +    where 1282 = <built-in method width of PySide6.QtWidgets.QStackedWidget object at 0x000001A463A96D40>()
+E            +      where <built-in method width of PySide6.QtWidgets.QStackedWidget object at 0x000001A463A96D40> = <PySide6.QtWidgets.QStackedWidget(0x1a462f76400) at 0x000001A463A96D40>.width
+E            +    and   960 = <built-in method x of PySide6.QtCore.QRect object at 0x000001A4628E8680>()
+E            +      where <built-in method x of PySide6.QtCore.QRect object at 0x000001A4628E8680> = PySide6.QtCore.QRect(960, 530, 260, 260).x
+E            +    and   260 = <built-in method width of PySide6.QtCore.QRect object at 0x000001A4628E8680>()
+E            +      where <built-in method width of PySide6.QtCore.QRect object at 0x000001A4628E8680> = PySide6.QtCore.QRect(960, 530, 260, 260).width
+
+tests\test_r57_watermark_overlay_geometry.py:161: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r40_batch_demands.py::test_watermark_paints_pixels_in_bottom_right
+FAILED tests/test_r57_watermark_overlay_geometry.py::test_overlay_pixels_only_in_bottomright
+FAILED tests/test_r57_watermark_overlay_geometry.py::test_mainwindow_watermark_is_not_fullwindow

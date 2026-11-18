@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.263" timestamp="2026-10-12T11:46:04.371735+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_run_all_actions_wired_to_global_slots" time="0.231"><failure message="AssertionError: run_all/stop_all 没有接到 triggered 上，实得 ['_clear_log_view', '_edit_selected', 'add_task', 'ai_model_dialog', 'auth_manager', 'authorize_selected', 'backfill_local', 'batch_export_tasks', 'batch_import_tasks', 'clean_orphan_files', 'close', 'convert_existing_to_jpg', 'create_shortcut', 'delete_selected', 'export_log', 'export_report', 'full_cleanup', 'import_tasks', 'prune_recycle', 'quarantine_manager', 'refresh', 'repair_gallery', 'retry_failed', 'run_selected', 'stop_all', 'stop_selected', 'toggle_ai_gpu', 'toggle_autostart', 'toggle_backup', 'toggle_blur', 'toggle_convert_jpg', 'toggle_key_ask', 'toggle_pause', 'toggle_recycle', 'toggle_sanitize', 'url_adapter_manager']&#10;assert {'run_all', 'stop_all'} &lt;= {'_clear_log_...elected', ...}&#10;  &#10;  Extra items in the left set:&#10;  'run_all'">def test_run_all_actions_wired_to_global_slots():
+        """项3：AST 兜底 —— 两个新 QAction 真的接到 run_all/stop_all 上。
+    
+        只判「菜单里有这两项」不够：挂到 run_selected 上也叫「有入口」，
+        但语义变成「只跑选中的那个」—— 那正是 R66 踩过的坑。
+        """
+        tree = ast.parse(SRC.read_text(encoding="utf-8"))
+        wired = set()
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "connect"
+                    and isinstance(node.func.value, ast.Attribute)
+                    and node.func.value.attr == "triggered"):
+                tgt = node.args[0] if node.args else None
+                if isinstance(tgt, ast.Attribute) and isinstance(
+                        tgt.value, ast.Name) and tgt.value.id == "self":
+                    wired.add(tgt.attr)
+&gt;       assert {"run_all", "stop_all"} &lt;= wired, (
+            "run_all/stop_all 没有接到 triggered 上，实得 %r" % sorted(wired))
+E       AssertionError: run_all/stop_all 没有接到 triggered 上，实得 ['_clear_log_view', '_edit_selected', 'add_task', 'ai_model_dialog', 'auth_manager', 'authorize_selected', 'backfill_local', 'batch_export_tasks', 'batch_import_tasks', 'clean_orphan_files', 'close', 'convert_existing_to_jpg', 'create_shortcut', 'delete_selected', 'export_log', 'export_report', 'full_cleanup', 'import_tasks', 'prune_recycle', 'quarantine_manager', 'refresh', 'repair_gallery', 'retry_failed', 'run_selected', 'stop_all', 'stop_selected', 'toggle_ai_gpu', 'toggle_autostart', 'toggle_backup', 'toggle_blur', 'toggle_convert_jpg', 'toggle_key_ask', 'toggle_pause', 'toggle_recycle', 'toggle_sanitize', 'url_adapter_manager']
+E       assert {'run_all', 'stop_all'} &lt;= {'_clear_log_...elected', ...}
+E         
+E         Extra items in the left set:
+E         'run_all'
+
+tests\test_r80_desktop_items.py:240: AssertionError</failure></testcase></testsuite></testsuites>

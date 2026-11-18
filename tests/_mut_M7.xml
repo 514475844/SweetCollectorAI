@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.289" timestamp="2026-10-12T11:46:14.206054+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_review_refresh_button_reloads" time="0.438"><failure message="AssertionError: 刷新按钮没有触发 reload(fill=True)：[]&#10;assert [] == [True]&#10;  &#10;  Right contains one more item: True&#10;  Use -v to get more diff">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x1e4bd023670) at 0x000001E4C5E0C700&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001E4BF7BDCD0&gt;
+
+    def test_review_refresh_button_reloads(win, monkeypatch):
+        """项7：点「刷新」真的调 reload(fill=True)（与右键菜单同一方法）。"""
+        rt = win._review_tab
+        calls = []
+        monkeypatch.setattr(rt, "reload",
+                            lambda fill=True: calls.append(fill))
+        rt.b_refresh.click()
+&gt;       assert calls == [True], "刷新按钮没有触发 reload(fill=True)：%r" % (calls,)
+E       AssertionError: 刷新按钮没有触发 reload(fill=True)：[]
+E       assert [] == [True]
+E         
+E         Right contains one more item: True
+E         Use -v to get more diff
+
+tests\test_r80_desktop_items.py:330: AssertionError</failure></testcase></testsuite></testsuites>

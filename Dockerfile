@@ -1,5 +1,13 @@
 # Dockerfile —— 多阶段构建（builder → runtime），对应订单 C1–C6
-# 目标平台：x86_64 Linux（Debian/glibc）。arm64 不在本单范围（订单 §0）。
+# 目标平台：x86_64 与 arm64 双架构（V0.0.55 起）。
+# 双架构可行性已实测钉死（2026-11-18）：
+#   · python:3.11-slim 官方多架构镜像，两架构都有；
+#   · 清华源的 onnxruntime cp311 有 manylinux aarch64 wheel（1.19.2 实测存在），
+#     pip 按构建平台自动选对 wheel —— 本文件不需要任何架构分支逻辑；
+#   · 打标线程默认封顶 4 且不超过核心一半，ARM 小机器（RK3399 2G 内存档）
+#     建议并发 1 + 线程 2（compose 的 MRM_AI_THREADS 给法见 docker/README.md）。
+# USE_GPU=1 仅 x86_64 有意义（CUDA 生态）；arm64 请保持 0。
+# 构建方式：docker buildx build --platform linux/amd64,linux/arm64 …
 # 设计取舍（R101 发现 2）：故意不用 `pip install .` —— pyproject 的 packages
 # 不含 web/ 与 bundled_models/ 且无 package-data ⇒ pip 装完镜像里没有前端
 # 资产，Web 一起就报「Web 前端资源缺失」（E4 必红）。改走 COPY 源码树，

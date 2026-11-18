@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="3.351" timestamp="2026-10-12T11:45:53.995477+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_palette_text_tiers_all_readable[False]" time="0.002"><failure message="AssertionError: 浅色 模式下 text_faint(#6a7080) 对底 #eef1f6 的对比度只有 4.37&#10;assert 4.372327950727312 &gt;= 4.5">dark = False
+
+    @pytest.mark.parametrize("dark", [False, True])
+    def test_palette_text_tiers_all_readable(dark):
+        """项11（调色板层）：深浅两套里 text/text_dim/text_faint 三档
+        对各自底色的 WCAG 对比度全部 ≥ 4.5。
+    
+        这一条是「所有列表文字看不清」的通用锁：TaskRow 的三处文字正好
+        一一对应这三档（name=text / sub=text_dim / status=text_faint），
+        而 #6a7080 那个旧值就是 4.37 漏过去的。判据是**关系**（≥4.5），
+        不写死色值 —— 将来再调色只要别跌破线就行。
+        """
+        pal = theme.palette(dark)
+        bg = _hx(pal["bg"])
+        for key in ("text", "text_dim", "text_faint"):
+            cr = _contrast(_hx(pal[key]), bg)
+&gt;           assert cr &gt;= 4.5, (
+                "%s 模式下 %s(%s) 对底 %s 的对比度只有 %.2f"
+                % ("暗色" if dark else "浅色", key, pal[key], pal["bg"], cr))
+E           AssertionError: 浅色 模式下 text_faint(#6a7080) 对底 #eef1f6 的对比度只有 4.37
+E           assert 4.372327950727312 &gt;= 4.5
+
+tests\test_r80_desktop_items.py:447: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_palette_text_tiers_all_readable[True]" time="0.002" /></testsuite></testsuites>

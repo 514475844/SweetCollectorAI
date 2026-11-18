@@ -117,7 +117,7 @@ def test_open_bind_unknown_ip_still_blocked():
 
 def test_open_bind_lan_still_ok_public_still_blocked():
     """0.0.0.0 绑定 + 空密码：私网客户端放行、公网客户端仍拦（R58 不放开）。"""
-    ok = _H(_cfg(password="", bind="0.0.0.0"), client_ip="192.168.1.100")
+    ok = _H(_cfg(password="", bind="0.0.0.0"), client_ip="192.168.1.9")
     assert ok._auth_ok() is True, "私网客户端被误拦 —— R157 免密语义倒退"
     bad = _H(_cfg(password="", bind="0.0.0.0"), client_ip="203.0.113.9")
     assert bad._client_allowed_by_ip() is False
@@ -150,7 +150,7 @@ def test_password_mode_untouched_by_r220():
 def test_password_mode_lan_open_still_wins():
     """设密码 + lan_open=True + 局域网 → 仍免密（R52 契约，走
     `_client_allowed_by_ip`，该检查在设密码路径保持第一位）。"""
-    h = _H(_cfg(password="secret", lan_open=True), client_ip="192.168.1.100")
+    h = _H(_cfg(password="secret", lan_open=True), client_ip="192.168.1.9")
     assert h._auth_ok() is True
 
 

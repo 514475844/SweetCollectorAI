@@ -72,6 +72,8 @@ export const api = {
                                         body: ids ? { act, ids, ...(extra || {}) } : { act, ...(extra || {}) } }),
   taskFailedUrls: (id) => req('/api/task/failed-urls?id=' + encodeURIComponent(id)),
   taskRetryUrls: (id, urls) => req('/api/task/retry-urls', { method: 'POST', body: { id: Number(id), urls } }),
+  // V0.0.55 批1：收件口（安卓壳用，首启向导的「建第一个任务」也走它）
+  inboxLink: (link) => req('/api/inbox/link', { method: 'POST', body: { link } }),
 
   // 图库 / 审核（同一分页通道：time 排序用 id 游标）
   // ⚠ 2026-10-27 真 bug：这里以前把参数**逐个写死**（limit/cursor/sort/q），
@@ -342,6 +344,8 @@ export const api = {
   searchAll: (q) => req('/api/search/all' + qs({ q })),
   // 程序更新检查（版本比对，返回中文文本）
   updateCheck: () => req('/api/update/check', { timeout: 30000 }),
+  // V0.0.55 批1：定时自动关机（GET=查当前计划，post('/api/powerdown')=安排/取消）
+  powerdown: () => req('/api/powerdown'),
   // V0.0.19：界面模式（与桌面端共用 cfg.ui_mode）
   uiMode: () => req('/api/ui/mode'),
   saveUiMode: (mode) => req('/api/ui/mode', { method: 'POST', body: { mode } }),

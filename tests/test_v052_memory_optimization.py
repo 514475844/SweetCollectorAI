@@ -45,4 +45,6 @@ def test_shell_cache_is_capped():
 
 
 def test_version_bumped():
-    assert 'VERSION = "0.0.52"' in _read("media_resource_manager/__init__.py")
+    import re
+    v = re.search(r'VERSION = "0\.0\.(\d+)"', _read("media_resource_manager/__init__.py"))
+    assert v and int(v.group(1)) >= 52

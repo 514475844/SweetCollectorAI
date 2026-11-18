@@ -1,0 +1,102 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 55%]
+........................................................................ [ 60%]
+........................................................................ [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 73%]
+........................................................................ [ 78%]
+........................................................................ [ 83%]
+........................................................................ [ 87%]
+........F........s...................................................... [ 92%]
+........................................................................ [ 96%]
+..xx............................................                         [100%]
+================================== FAILURES ===================================
+_________________ test_target_box_still_left_bottom_anchored __________________
+
+qapp = <PySide6.QtWidgets.QApplication(0x80022010a0) at 0x00000260EBE1E240>
+
+    def test_target_box_still_left_bottom_anchored(qapp):
+        """R48-A1 不许破坏：仍贴左（x≈INSET+OFFSET_X）、贴底（y+h≈H-INSET+OFFSET_Y）。"""
+        from media_resource_manager.gui.watermark import INSET, OFFSET_X, OFFSET_Y
+    
+>       stack, wm, _ = _mk_overlay(qapp)
+                       ^^^^^^^^^^^^^^^^^
+
+tests\test_r175_watermark_vertical.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_r175_watermark_vertical.py:91: in _mk_overlay
+    page = QWidget()
+           ^^^^^^^^^
+media_resource_manager\gui\watermark.py:524: in eventFilter
+    if (obj is self.parentWidget() or obj is self._ref()
+               ^^^^^^^^^^^^^^^^^^^
+media_resource_manager\gui\watermark.py:524: in eventFilter
+    if (obj is self.parentWidget() or obj is self._ref()
+               ^^^^^^^^^^^^^^^^^^^
+media_resource_manager\gui\watermark.py:524: in eventFilter
+    if (obj is self.parentWidget() or obj is self._ref()
+               ^^^^^^^^^^^^^^^^^^^
+media_resource_manager\gui\watermark.py:526: in eventFilter
+    if self._target_box() != self.geometry() or \
+       ^^^^^^^^^^^^^^^^^^
+media_resource_manager\gui\watermark.py:424: in _target_box
+    ref = self._ref()
+          ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[RuntimeError('libshiboken: Internal C++ object (WatermarkOverlay) already deleted.') raised in repr()] WatermarkOverlay object at 0x2609cf67280>
+
+    def _ref(self):
+        """几何计算的**参照系**：anchor（一般是 stack）优先，退回 host。
+    
+        R48-A2：三页水印必须落在「完全相同的 host 坐标」。做法不是让三页
+        各自算各自的 `_content_bottom()`（实测随当前页在 848/812/791 之间
+        跳，同一时刻三页位置就不同），而是**统一到 stack 这一个参照系**上算，
+        再把结果映射回各自的 host 坐标 —— 只要 anchor 一样，算出来的位置
+        就必然一样。
+    
+        ⚠ 这里**故意不检查 anchor 的尺寸**：`_build_ui` 阶段 attach() 跑在
+        布局之前，那时 stack 还是 0x0，一旦「宽为 0 就退回 host」，就永远
+        装不上 anchor 的 resize 转发 → 改窗口尺寸时另外两页不跟着重算
+        （实测 resize 到 1100x700 后 stack 那只到了 y=327，另两只还停在 526）。
+        参照系「暂时没尺寸」不是「参照系无效」，两者必须分开。
+        """
+>       a = self._anchor
+            ^^^^^^^^^^^^
+E       AttributeError: Error calling Python override of QWidget::eventFilter(): Error calling Python override of QWidget::eventFilter(): Error calling Python override of QWidget::eventFilter(): Error calling Python override of QWidget::eventFilter(): 'WatermarkOverlay' object has no attribute '_anchor'
+
+media_resource_manager\gui\watermark.py:238: AttributeError
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_r152_c_group.py::test_c7_exif_survives_into_outcome
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_functions_work_on_large_image
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_gradient_not_low_variance
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:100: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_functions_work_on_large_image
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:62: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+tests/test_r152_d3_e8_e10.py: 1 warning
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:183: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r175_watermark_vertical.py::test_target_box_still_left_bottom_anchored

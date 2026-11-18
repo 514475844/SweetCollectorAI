@@ -1,0 +1,44 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 22%]
+........................................................................ [ 27%]
+........................................................................ [ 31%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+........................................................................ [ 45%]
+........................................................................ [ 50%]
+........................................................................ [ 54%]
+........................................................................ [ 59%]
+........................................................................ [ 63%]
+........................................................................ [ 68%]
+........................................................................ [ 73%]
+........................................................................ [ 77%]
+........................................................................ [ 82%]
+........................................................................ [ 86%]
+.................s...................................................... [ 91%]
+........................................................................ [ 95%]
+..xx.............................................................        [100%]
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_r152_c_group.py::test_c7_exif_survives_into_outcome
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_functions_work_on_large_image
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_gradient_not_low_variance
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:100: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_functions_work_on_large_image
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:62: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+tests/test_r152_d3_e8_e10.py: 1 warning
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:183: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

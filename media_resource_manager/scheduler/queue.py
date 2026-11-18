@@ -267,6 +267,14 @@ class TaskQueue:
             restore_all(self.cfg, self, stale_ids)
         except Exception:
             pass
+        # V0.0.55 批1：恢复「任务跑完自动关机 / 每日定点关机」计划。
+        # 每日模式重启后要续上；一次性 on_idle 只在确实还挂着没跑完的
+        # 收尾场景有意义，同样交给配置里记着的计划继续盯。
+        try:
+            from .. import powerdown
+            powerdown.resume_from_cfg(self.cfg, self)
+        except Exception:
+            pass
 
     def pump_once(self):
         """单步推进事件循环一轮。从 GUI 线程（Qt 定时器）调用，绝不阻塞。"""

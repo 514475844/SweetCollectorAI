@@ -22,7 +22,7 @@ import pytest
 from media_resource_manager import webui
 
 # 仓库根 = 本测试文件的父目录的父目录。
-# ⚠ 2026-11-09 修：原来是写死的旧机器路径 <user-path>
+# ⚠ 2026-11-09 修：原来是写死的旧机器路径 C:\Users\admin\Sweet（换机后
 # 整文件 8 条全部 FileNotFoundError 假红）。跟着 __file__ 走，换机换盘符都成立。
 from pathlib import Path
 ROOT = str(Path(__file__).resolve().parents[1])

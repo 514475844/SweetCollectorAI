@@ -1,0 +1,70 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 22%]
+.......................................................................F [ 27%]
+........................................................................ [ 31%]
+........................................................................ [ 36%]
+........................................................................ [ 40%]
+........................................................................ [ 45%]
+........................................................................ [ 49%]
+........................................................................ [ 54%]
+........................................................................ [ 58%]
+........................................................................ [ 63%]
+........................................................................ [ 67%]
+........................................................................ [ 72%]
+........................................................................ [ 76%]
+........................................................................ [ 81%]
+........................................................................ [ 85%]
+.................s...................................................... [ 90%]
+........................................................................ [ 94%]
+..xx..............F..................................................... [ 99%]
+.............                                                            [100%]
+================================== FAILURES ===================================
+__________________ test_frontend_has_add_and_prompt_entries ___________________
+
+    def test_frontend_has_add_and_prompt_entries():
+        js = _js()
+        assert "＋ 添加适配器" in js
+>       assert "一键复制 Prompt" in js
+E       assert '一键复制 Prompt' in "/* Sweet采集AI版 · Web 前端逻辑\n *\n * 全部原生 ES2017+，无框架、无构建步骤。理由与 webui.py 相同：\n * 这个软件要打在别人机器上跑，任何前端框架都是打包体积与依赖树的负担。\n *\n...批同款做法）。 */\nif (typeof module !== 'undefined' && module.exports) {\n  module.exports.diskBarWidth = diskBarWidth;\n}\n"
+
+tests\test_r144_web_adapter_add.py:350: AssertionError
+________________ test_engine_skips_bare_homepage_before_spawn _________________
+
+    def test_engine_skips_bare_homepage_before_spawn():
+        """快路径必须在 spawn 之前就把裸首页挑掉（否则每喂一次弹一次黑窗）。"""
+        src = _src("engine.py")
+        assert "is_bare_homepage(url)" in src
+        assert "跳过裸首页入口" in src
+        # 全被跳过时要给用户一句中文解释，不能静默「成功但 0 张图」
+>       assert "入口是站点首页" in src
+E       assert '入口是站点首页' in '"""Automatic crawl pipeline orchestrator (the "fully automatic" engine).\n\nFlow per task:\n  multi-level discovery -...    try:\n            on_progress(scanned, added, "")\n        except Exception:\n            pass\n    return added\n'
+
+tests\test_r202_guards.py:147: AssertionError
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_r152_c_group.py::test_c7_exif_survives_into_outcome
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_functions_work_on_large_image
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_gradient_not_low_variance
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:100: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_r152_d3_e8_e10.py::test_d3_dedup_functions_work_on_large_image
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:62: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+tests/test_r152_d3_e8_e10.py: 1 warning
+  C:\Users\Admin\Sweet\media_resource_manager\dedup\hash.py:183: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r144_web_adapter_add.py::test_frontend_has_add_and_prompt_entries
+FAILED tests/test_r202_guards.py::test_engine_skips_bare_homepage_before_spawn

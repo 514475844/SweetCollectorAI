@@ -179,9 +179,21 @@ class Fetcher:
     def _check_ip_filter(self, url: str) -> None:
         """编号 17：命中过滤规则就抛 AccessBlocked（带中文原因）。
 
+        2026-11-18（批1）：先过 ssrf.check_url —— 云元数据/链路本地等保留段
+        无条件硬拦（采集链唯一收口点，重定向由 httpx 事件钩子另行兜底）；
+        家庭私有网段**放行**，抓 NAS 是正常用法。
+
         编号 34：`allow_private_hosts=False` 时，内网/本机地址同样直接跳过。
         默认 **True（放行）** —— 默认拦掉会让"抓本地 NAS"的用户升级即失能。
         """
+        try:
+            from ..ssrf import check_url, SsrfBlocked
+            check_url(url)
+        except SsrfBlocked as e:
+            self.blocked += 1
+            raise AccessBlocked(f"已拦截保留地址：{e}")
+        except Exception:
+            pass
         if not self._allow_private:
             try:
                 from ..ipfilter import is_local_host
@@ -233,6 +245,16 @@ class Fetcher:
 
         def _mk(proxy: Optional[str]) -> httpx.AsyncClient:
             kw = dict(verify=verify)
+
+            def _ssrf_hook(request):
+                # 批1：重定向的每一跳都会重新走 request 钩子 ——
+                # 首查在 _check_ip_filter，这里兜住「跳板转向元数据段」。
+                from ..ssrf import check_url, SsrfBlocked
+                try:
+                    check_url(str(request.url))
+                except SsrfBlocked as e:
+                    raise AccessBlocked(f"跳转目标属保留地址：{e}")
+
             try:
                 local = self.bind_ip or None
                 if local:                       # 编号 32：绑定源地址
@@ -241,7 +263,7 @@ class Fetcher:
                 return httpx.AsyncClient(
                     headers={"User-Agent": self.cfg.user_agent},
                     follow_redirects=True, timeout=self.cfg.timeout,
-                    transport=transport)
+                    transport=transport, event_hooks={"request": [_ssrf_hook]})
             except TypeError:
                 # 极老的 httpx 不认识 local_address —— 丢掉这个参数再试一次
                 # （宁可源地址不生效，也不能让任务起不来）
@@ -249,7 +271,7 @@ class Fetcher:
                 return httpx.AsyncClient(
                     headers={"User-Agent": self.cfg.user_agent},
                     follow_redirects=True, timeout=self.cfg.timeout,
-                    transport=transport)
+                    transport=transport, event_hooks={"request": [_ssrf_hook]})
 
         try:
             client = _mk(self.effective_proxy)

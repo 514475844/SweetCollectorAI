@@ -19,7 +19,7 @@ def test_http_also_masked():
 
 
 def test_windows_path_keeps_filename():
-    s = sanitize_text(r"保存到 <user-path>")
+    s = sanitize_text(r"保存到 C:\Users\Admin\AppData\Roaming\x\pic_001.jpg")
     assert "pic_001.jpg" in s, "文件名要留着，否则无法定位是哪张图"
     assert "Admin" not in s
     assert "AppData" not in s

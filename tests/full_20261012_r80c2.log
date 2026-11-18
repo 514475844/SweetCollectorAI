@@ -1,0 +1,587 @@
+........................................................................ [  4%]
+........................................................................ [  8%]
+........................................................................ [ 12%]
+........................................................................ [ 16%]
+........................................................................ [ 20%]
+..........................................ss............................ [ 24%]
+...........s......................................................s..... [ 28%]
+........................................................................ [ 32%]
+.........s...FFFFFFFFFFF......................F......................... [ 37%]
+...........FF........................................................... [ 41%]
+........................................................................ [ 45%]
+........................................................................ [ 49%]
+........................................................................ [ 53%]
+........................................................................ [ 57%]
+........................................................................ [ 61%]
+........................................................................ [ 65%]
+........................................................................ [ 70%]
+........................................................................ [ 74%]
+........................................................................ [ 78%]
+........................................................................ [ 82%]
+........................................................................ [ 86%]
+........................................................................ [ 90%]
+........................................................................ [ 94%]
+........................................................................ [ 98%]
+....................                                                     [100%]
+================================== FAILURES ===================================
+__________________ test_there_is_exactly_one_fill_all_button __________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_there_is_exactly_one_fill_all_button(win):
+        """B：界面上**只有一个**「全部填满」，一次填满全部四行。
+    
+        R52 改版后本用例取代旧的 `test_every_history_row_has_the_button`
+        （那条断言「四行各有一个」，与「一个按钮填满全部」的产品意图矛盾：
+        四行各放一个会误导成「各填各的」，正是 `test_only_first_row_shows_the_button`
+        当初要排除的形态）。
+        """
+>       _btn(win)
+
+tests\test_r48_fill_all_history.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = None
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+QLayout: Attempting to add QLayout "" to QWidget "", which already has a layout
+__________________________ test_button_is_not_hidden __________________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_button_is_not_hidden(win):
+        """按钮自己没被显式隐藏。
+    
+        用 `isHidden()` 不用 `isVisible()`：任务表单面板是懒构建且从不 show，
+        offscreen 下整条父子链 `isVisible()` 恒为 False，用它断言必假
+        （见模块 docstring）。
+        """
+>       b = _btn(win)
+            ^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = None
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+______________________ test_button_sits_before_the_chips ______________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_button_sits_before_the_chips(win):
+        """B：「在所有曾用词标题**最前面**」—— 按钮排在词标签左边。
+    
+        判据用**布局索引**而不是像素坐标（像素会随字体/DPI 变）。
+        R52：随按钮独立成行，这里查的是**按钮自己那一行**的布局，
+        不再是某个 `_hist_chips_*` 盒子的布局。
+        """
+>       b = _btn(win)
+            ^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:154: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = None
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+__________________ test_button_row_precedes_the_history_rows __________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_button_row_precedes_the_history_rows(win):
+        """按钮那一行（连同「曾用词」标题）排在**所有词条行**之前。
+    
+        这是「最前面」的真实含义。
+    
+        ⚠⚠⚠ R52 在这条断言上连错四次（恒绿→恒红→-1→-2），根因值得留档：
+        **运行时 Qt 结构在 offscreen 下根本读不出行序**。
+          ① 各行分属不同父布局 → 局部下标恒为 1，比大小无意义（恒绿，假护栏）
+          ② 几何 y：任务表单是懒构建且从未真正布局，`mapTo` 全部返回同一个
+             默认值（实测按钮与四行 y 全是 239）→ 恒红，误报真回归
+          ③ 一路 `indexOf`：上溯到的却是**内层** QVBoxLayout，不是表单行容器
+          ④ 按「count==24」认行容器：命中了外层，但 24 项全是**匿名 QHBoxLayout**
+             （`item.widget()` 为 None），身份比对全落空 → 全 -2
+        —— 四次都在**猜结构**，而源码 `add_row` 的调用顺序就是唯一事实源。
+        正解：**AST 读源码**判字面顺序（本仓 test_r39 / test_r60c 已是这个路子）。
+        运行时那条唯一留着的判据是「全局只有一个按钮」（`test_there_is_exactly_one_fill_all_button`），
+        它不依赖任何布局假设。
+        """
+        src = pathlib.Path(main_window.__file__).read_text(encoding="utf-8")
+>       btn_at = src.index('add_row(full_cell("曾用词", b_fill_all))')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: substring not found
+
+tests\test_r48_fill_all_history.py:191: ValueError
+__________________ test_button_shares_its_row_with_the_label __________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_button_shares_its_row_with_the_label(win):
+        """按钮与「曾用词」标题**同处一个单元格**（`full_cell` 把两者塞进同一 QWidget）。
+    
+        R51 改版后按钮独立成行，但仍与标题同行 —— 用户看到的是
+        「曾用词  [全部填满]」这样一个词条行的表头，而不是一个孤零零的按钮。
+        判据：按钮的父节点就是那个单元格的 QHBoxLayout，且第 0 项是标题标签。
+        """
+>       b = _btn(win)
+            ^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = None
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+__________________ test_button_label_and_tooltip_are_chinese __________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_button_label_and_tooltip_are_chinese(win):
+        """按钮文案 + 悬浮说明必须是中文（用户可见）。"""
+>       b = _btn(win, "ai_label_history")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:236: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = 'ai_label_history'
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+_____________ test_only_one_button_so_no_misleading_per_row_copy ______________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+
+    def test_only_one_button_so_no_misleading_per_row_copy(win):
+        """全局只有一个按钮 ⇒ 不存在「四行各一个、误导成各填各的」的形态。
+    
+        R52 改版后本用例取代旧的 `test_only_first_row_shows_the_button`
+        （那条判据是「一级可见、其余三层隐藏」，建立在「每行各有一个按钮」之上；
+        按钮独立成行后这个前提消失，那条断言已无意义 —— 留着它不是护栏，
+        是**逼着后人把按钮复制回四行**的假约束）。
+        """
+>       assert len(win.findChildren(QPushButton, "btnFillAllHistory")) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = <built-in method findChildren of MainWindow object at 0x0000019592F358C0>(QPushButton, 'btnFillAllHistory')
+E        +      where <built-in method findChildren of MainWindow object at 0x0000019592F358C0> = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>.findChildren
+
+tests\test_r48_fill_all_history.py:250: AssertionError
+______________________ test_click_fills_all_four_fields _______________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+qapp = <PySide6.QtWidgets.QApplication(0x195fcc3dbc0) at 0x00000195FEDF4F80>
+
+    def test_click_fills_all_four_fields(win, qapp):
+        """B 核心：点一次 → 三级白名单 + 黑名单**全部**被填上。
+    
+        红→绿：改码前只能逐个词点 → 红。
+        """
+        data = _seed(win)
+        for f in ("f_ai_labels", "f_ai_l2", "f_ai_l3", "f_ai_excl"):
+            getattr(win, f).setText("")
+    
+>       _btn(win, "ai_label_history").click()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = 'ai_label_history'
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+_______________________ test_fill_never_crosses_levels ________________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+qapp = <PySide6.QtWidgets.QApplication(0x195fcc3dbc0) at 0x00000195FEDF4F80>
+
+    def test_fill_never_crosses_levels(win, qapp):
+        """填入**不跨级串词**（r31 的规矩：一级词不许串进二级桶）。
+    
+        串了会污染匹配 —— 主题词串到排除词里更是铁律级事故。
+        """
+        data = _seed(win)
+        for f in ("f_ai_labels", "f_ai_l2", "f_ai_l3", "f_ai_excl"):
+            getattr(win, f).setText("")
+>       _btn(win, "ai_label_history").click()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:299: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = 'ai_label_history'
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+____________________ test_fill_appends_and_keeps_existing _____________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+qapp = <PySide6.QtWidgets.QApplication(0x195fcc3dbc0) at 0x00000195FEDF4F80>
+
+    def test_fill_appends_and_keeps_existing(win, qapp):
+        """**追加不覆盖**：用户已填的词必须留着。
+    
+        凭空覆盖是破坏而不是便捷 —— 用户填了一半点一下全没了。
+        """
+        _seed(win)
+        win.f_ai_labels.setText("myword")
+        win.f_ai_excl.setText("keepme")
+>       _btn(win, "ai_label_history").click()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:322: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = 'ai_label_history'
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+___________________________ test_fill_is_idempotent ___________________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+qapp = <PySide6.QtWidgets.QApplication(0x195fcc3dbc0) at 0x00000195FEDF4F80>
+
+    def test_fill_is_idempotent(win, qapp):
+        """点两次不会把同一个词加两遍（重复词看着像坏了）。"""
+        _seed(win)
+        for f in ("f_ai_labels", "f_ai_l2", "f_ai_l3", "f_ai_excl"):
+            getattr(win, f).setText("")
+>       _btn(win, "ai_label_history").click()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_r48_fill_all_history.py:337: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee33230) at 0x0000019592F358C0>
+key = 'ai_label_history'
+
+    def _btn(win, key=None):
+        """定位「全部填满」按钮 —— **全局唯一一个**（R51 起改版）。
+    
+        ⚠⚠ R52：这条 helper 的契约在 R51 变过一次，改版后本文件 8 个用例集体转红
+        （全量 1356 项 / 8 failed，全是 `assert None is not None`）。
+        根因**不是产品回归**，是测试还在按旧契约找按钮：
+            旧：每条曾用词行（`_hist_chips_<key>`）各挂一个按钮（只一级那个可见）
+            新：按钮**独立成行**，放在**所有**曾用词块最前面，全局只有一个
+        产品代码的注释（`_mk_history_button` 里那段 R51 说明）写得很明确，
+        且探针实测 `findChildren(..., "btnFillAllHistory")` **恰好 1 个**、`isHidden()`
+        为 False —— 即新设计已正确落地。所以**改测试、不改产品代码**。
+    
+        这也是 MEMORY 那条铁律的又一次应验：**功能/结构真变更后，正向的
+        「查它在不在」旧断言必然假失败**，此时要重新确认设计意图再改判据，
+        绝不能顺着红灯去回退本来就正确的产品代码。
+    
+        `key` 参数保留但**不再用于定位**（只为兼容调用点、不必改 12 处调用）——
+        按钮填的是全部四行，本来就与具体某一层无关。
+        """
+        btns = win.findChildren(QPushButton, "btnFillAllHistory")
+>       assert btns, "整个窗口都找不到「全部填满」按钮"
+E       AssertionError: 整个窗口都找不到「全部填满」按钮
+E       assert []
+
+tests\test_r48_fill_all_history.py:117: AssertionError
+___________________ test_output_row_three_controls_same_row ___________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee32300) at 0x0000019589581380>
+
+    def test_output_row_three_controls_same_row(win):
+        """C：编辑框 + 浏览 + 沿用上次 三者**同一父控件**（同一行），无独立「上次目录」区。
+    
+        ⚠ 关系断言：同一父容器比 y 坐标抗布局重构（y 随字体/DPI/面板高变）。
+        ⚠ `win._out_row` 就是那一行（B3 之后它是**建面板时建一次**的，不是动态塞的）。
+        """
+        from PySide6.QtWidgets import QCheckBox, QLineEdit, QWidget
+    
+        row = win._out_row
+        browse = [b for b in row.findChildren(QPushButton) if b.text().startswith("浏览")]
+        assert browse, "这一行没有「浏览…」按钮"
+        # ⚠ 「沿用上次目录」是 **QCheckBox**，不是可勾选 QPushButton ——
+        #   我第一版用 `isCheckable()` 在 QPushButton 里找 ⇒ 空列表假红。
+        checks = row.findChildren(QCheckBox)
+>       assert checks, "这一行没有「沿用上次目录」勾选框"
+E       AssertionError: 这一行没有「沿用上次目录」勾选框
+E       assert []
+
+tests\test_r48_h_feature_smoke.py:354: AssertionError
+______________________ test_three_controls_share_one_row ______________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee1ff10) at 0x0000019588AB7440>
+
+    def test_three_controls_share_one_row(win):
+        """C 核心：编辑框 + 浏览 + 沿用勾选**同父同布局** = 同一行。
+    
+        判据用「同一个 parentWidget + 同一个 layout」，不用 y 坐标
+        （坐标会随字体/DPI 变，写死就是快照式炸弹）。
+        """
+        row = win._out_row
+        assert win.f_out.parentWidget() is row, "编辑框不在这一行里"
+>       assert win._cb_reuse_last.parentWidget() is row, "沿用勾选不在这一行里"
+E       AssertionError: 沿用勾选不在这一行里
+E       assert <PySide6.QtWidgets.QWidget(0x195c1c3b690) at 0x000001958A93E340> is <PySide6.QtWidgets.QWidget(0x195c1c45380) at 0x0000019588F13A00>
+E        +  where <PySide6.QtWidgets.QWidget(0x195c1c3b690) at 0x000001958A93E340> = <built-in method parentWidget of PySide6.QtWidgets.QCheckBox object at 0x000001958851B980>()
+E        +    where <built-in method parentWidget of PySide6.QtWidgets.QCheckBox object at 0x000001958851B980> = <PySide6.QtWidgets.QCheckBox(0x195ab3793f0) at 0x000001958851B980>.parentWidget
+E        +      where <PySide6.QtWidgets.QCheckBox(0x195ab3793f0) at 0x000001958851B980> = <media_resource_manager.gui.main_window.MainWindow(0x195bee1ff10) at 0x0000019588AB7440>._cb_reuse_last
+
+tests\test_r48_output_row_layout.py:103: AssertionError
+---------------------------- Captured stderr setup ----------------------------
+QLayout: Attempting to add QLayout "" to QWidget "", which already has a layout
+____________________ test_order_is_edit_browse_then_reuse _____________________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x195bee1ff10) at 0x0000019588AB7440>
+
+    def test_order_is_edit_browse_then_reuse(win):
+        """C：顺序 = 编辑框 → 浏览 → 沿用（作业单要求沿用**排在后面**）。"""
+        row = win._out_row
+        lay = row.layout()
+        widgets = [lay.itemAt(i).widget() for i in range(lay.count())]
+        widgets = [w for w in widgets if w is not None]
+        ids = [id(w) for w in widgets]
+        assert ids.index(id(win.f_out)) < ids.index(id(_browse_btn(win))), \
+            "浏览按钮应排在编辑框之后"
+>       assert ids.index(id(_browse_btn(win))) < ids.index(id(win._cb_reuse_last)), \
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "沿用勾选应排在浏览按钮之后（作业单要求）"
+E       ValueError: 1741748812160 is not in list
+
+tests\test_r48_output_row_layout.py:116: ValueError
+============================== warnings summary ===============================
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+tests/test_dedup.py::test_low_variance_detects_solids_not_gradients
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:72: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+tests/test_dedup.py::test_solid_colors_have_identical_dhash
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:35: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = list(im.getdata())
+
+tests/test_grayscale_blacklist.py: 10 warnings
+  C:\Users\admin\Sweet\media_resource_manager\dedup\hash.py:120: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    px = rgb.getdata()
+
+tests/test_r38_pump_main_task.py::test_loop_not_running_is_the_silent_failure_mode
+  C:\Users\admin\Sweet\tests\test_r38_pump_main_task.py:154: RuntimeWarning: coroutine 'test_loop_not_running_is_the_silent_failure_mode.<locals>._never' was never awaited
+    with pytest.raises(RuntimeError):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_r56_accum_forensics.py::test_no_dict_star_unpack_environ_with_extra_kwargs
+  <unknown>:20: DeprecationWarning: invalid escape sequence '\p'
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_r48_fill_all_history.py::test_there_is_exactly_one_fill_all_button
+FAILED tests/test_r48_fill_all_history.py::test_button_is_not_hidden - Assert...
+FAILED tests/test_r48_fill_all_history.py::test_button_sits_before_the_chips
+FAILED tests/test_r48_fill_all_history.py::test_button_row_precedes_the_history_rows
+FAILED tests/test_r48_fill_all_history.py::test_button_shares_its_row_with_the_label
+FAILED tests/test_r48_fill_all_history.py::test_button_label_and_tooltip_are_chinese
+FAILED tests/test_r48_fill_all_history.py::test_only_one_button_so_no_misleading_per_row_copy
+FAILED tests/test_r48_fill_all_history.py::test_click_fills_all_four_fields
+FAILED tests/test_r48_fill_all_history.py::test_fill_never_crosses_levels - A...
+FAILED tests/test_r48_fill_all_history.py::test_fill_appends_and_keeps_existing
+FAILED tests/test_r48_fill_all_history.py::test_fill_is_idempotent - Assertio...
+FAILED tests/test_r48_h_feature_smoke.py::test_output_row_three_controls_same_row
+FAILED tests/test_r48_output_row_layout.py::test_three_controls_share_one_row
+FAILED tests/test_r48_output_row_layout.py::test_order_is_edit_browse_then_reuse
+PYTEST_EXIT=1

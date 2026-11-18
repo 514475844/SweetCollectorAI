@@ -233,7 +233,7 @@ def test_f7_default_zh_mapping_not_regressed():
 def test_f7_logutil_is_the_live_logger():
     """活日志层仍是 logutil（F7 删的是 utils/logging.py 这个死模块，不是日志）。"""
     from media_resource_manager import logutil
-    masked = logutil.sanitize_text("<user-path>")
+    masked = logutil.sanitize_text("C:/Users/someone/lib/a.jpg")
     assert "someone" not in masked and "lib" not in masked
     assert masked.endswith("a.jpg")
     assert hasattr(logutil, "SanitizeFilter")

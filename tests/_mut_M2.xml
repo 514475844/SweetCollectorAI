@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.381" timestamp="2026-10-12T11:45:49.451041+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_p14b_skin_convergence" name="test_task_row_text_colors_come_from_palette" time="0.447"><failure message="AssertionError: TaskRow 第三档文字没有走调色板 text_faint 键（R80 起应是 _tstyle(..., &quot;color:{text_faint};...&quot;) 形式）&#10;assert []">def test_task_row_text_colors_come_from_palette():
+        """任务行三档文字色（name/sub/st）必须取自调色板而非三元写死。
+    
+        断言走 **AST 字符串常量**而不是全文搜 —— 上一版用 `'"#e7eaf0" if' not in src`
+        结果匹配到我自己写的那段**解释性注释**（注释里正 quoting 着改掉前的写法），
+        假红。教训与本文件开头一致：注释里全是「曾经错在哪」的说明。
+        """
+        p = PKG / "gui" / "main_window.py"
+        src = p.read_text(encoding="utf-8", errors="ignore")
+        tree = ast.parse(src)
+        fb = _fallback_lines(tree)
+        # 找出所有「三元的条件分支里出现 hex」的表达式 = 写死的双套配色。
+        # ⚠ 必须排除**兜底行**：`_tc(dark,"grade_ok","#22c55e") if cond else ...`
+        # 这种三元里那个 hex 只是 `theme.c` 的第三参（取不到键时的兜底），
+        # **不是**在选颜色 —— 三元选的是「哪一档语义色」。判它违规就误伤了。
+        ternaries = [n for n in ast.walk(tree)
+                     if isinstance(n, ast.IfExp) and _hexes(ast.unparse(n))
+                     and n.lineno not in fb]
+        assert not ternaries, (
+            "还有 %d 处「深色字 if _dark else 浅色字」式的写死配色（行 %s）—— "
+            "两套值应住在 theme.PALETTE，代码里只表达要哪一档"
+            % (len(ternaries), sorted({n.lineno for n in ternaries})))
+        # 第三档文字色仍要走调色板的 text_faint 键。
+        # ⚠ R80：原判据是字面量 `'_tc(_dark, "text_faint"' in src`，TaskRow 三处
+        #   文字改走 theme.style 登记式模板（_tstyle）后那条恒假红 —— 判据该问
+        #   「用没用 text_faint 这个键」，不该问「用哪个函数」。改成 AST：
+        #   存在一个 _tstyle 调用，其模板里带 {text_faint}。
+        _tf = [n for n in ast.walk(tree)
+               if (isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+                   and n.func.id == "_tstyle"
+                   and any(isinstance(a, ast.Constant) and "{text_faint}" in str(a.value)
+                           for a in n.args))]
+&gt;       assert _tf, (
+            "TaskRow 第三档文字没有走调色板 text_faint 键（R80 起应是 "
+            "_tstyle(..., \"color:{text_faint};...\") 形式）")
+E       AssertionError: TaskRow 第三档文字没有走调色板 text_faint 键（R80 起应是 _tstyle(..., "color:{text_faint};...") 形式）
+E       assert []
+
+tests\test_p14b_skin_convergence.py:237: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,43 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_______________ test_set_skin_log_uses_skin_name_not_accent_key _______________
+
+win = <media_resource_manager.gui.main_window.MainWindow(0x24efbe14af0) at 0x0000024EFC58DC40>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024EFF0BFC50>
+
+    def test_set_skin_log_uses_skin_name_not_accent_key(win, monkeypatch):
+        """日志里出现皮肤名而不是内部键 —— 用户看不懂 'night'。"""
+        from media_resource_manager.gui import theme
+        seen = []
+        monkeypatch.setattr(type(win), "log_signal",
+                            property(lambda self: type("S", (), {
+                                "emit": lambda _s, m: seen.append(m)})()))
+        win.set_skin("night")
+>       assert any("暗夜风" in m for m in seen), "日志没用皮肤名：%s" % seen
+E       AssertionError: 日志没用皮肤名：[]
+E       assert False
+E        +  where False = any(<generator object test_set_skin_log_uses_skin_name_not_accent_key.<locals>.<genexpr> at 0x0000024EFF231E50>)
+
+tests\test_r68_skin_presets.py:376: AssertionError
+________________ test_legacy_dark_mode_user_migrates_to_night _________________
+
+    def test_legacy_dark_mode_user_migrates_to_night():
+        """老用户开着深色 → 升级后必须落在暗夜风，**不能悄悄变浅色**。
+    
+        这是真实的数据丢失：用户特意开的主题，升级后被重置 = 功能回退。
+        """
+        from media_resource_manager import config as cfgmod
+        from media_resource_manager.gui import theme
+        cfg = cfgmod.AppConfig.from_dict({"dark_mode": True})
+>       assert cfgmod.migrated_preset_for(cfg) == "night", (
+            "老用户开着深色，升级后没落到暗夜风 = 主题被悄悄重置")
+E       AssertionError: 老用户开着深色，升级后没落到暗夜风 = 主题被悄悄重置
+E       assert 'classic' == 'night'
+E         
+E         - night
+E         + classic
+
+tests\test_r68_skin_presets.py:418: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_r68_skin_presets.py::test_set_skin_log_uses_skin_name_not_accent_key
+FAILED tests/test_r68_skin_presets.py::test_legacy_dark_mode_user_migrates_to_night

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="43" time="45.215" timestamp="2026-10-07T16:52:04.871972+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r33_review_and_table" name="test_dislike_words_cover_three_levels" time="0.109" /><testcase classname="tests.test_r33_review_and_table" name="test_dislike_words_dedup_preserved_order" time="0.067" /><testcase classname="tests.test_r33_review_and_table" name="test_no_task_gives_no_words" time="0.067" /><testcase classname="tests.test_r33_review_and_table" name="test_autofill_checkbox_is_the_single_source_of_truth" time="0.076" /><testcase classname="tests.test_r33_review_and_table" name="test_autofill_falls_back_to_config_before_the_box_exists" time="0.074" /><testcase classname="tests.test_r33_review_and_table" name="test_autofill_switch_sits_in_the_action_area" time="0.063" /><testcase classname="tests.test_r33_review_and_table" name="test_autofill_switch_is_not_buried_with_the_preview_slider" time="0.066" /><testcase classname="tests.test_r33_review_and_table" name="test_toggling_the_box_does_not_desync_the_ui" time="0.074" /><testcase classname="tests.test_r33_review_and_table" name="test_header_sections_are_movable" time="0.023" /><testcase classname="tests.test_r33_review_and_table" name="test_sorting_keeps_the_column_widths" time="0.015" /><testcase classname="tests.test_r33_review_and_table" name="test_header_columns_can_be_hidden_and_restored" time="0.015" /><testcase classname="tests.test_r33_review_and_table" name="test_hidden_state_survives_a_refill" time="0.020" /><testcase classname="tests.test_r33_review_and_table" name="test_never_hides_every_last_column" time="0.017" /><testcase classname="tests.test_r33_review_and_table" name="test_dislike_with_recycle_on_moves_the_file_to_the_trash" time="0.079" /><testcase classname="tests.test_r33_review_and_table" name="test_dislike_with_recycle_off_deletes_everything" time="0.389" /><testcase classname="tests.test_r33_review_and_table" name="test_dislike_never_leaves_a_copy_in_the_gallery" time="0.102" /><testcase classname="tests.test_r33_review_and_table" name="test_like_still_lands_in_the_gallery" time="0.069" /><testcase classname="tests.test_r40_batch_demands" name="test_thumb_crop_switch_keeps_aspect" time="0.124" /><testcase classname="tests.test_r40_batch_demands" name="test_gallery_sort_toggles_direction" time="0.487" /><testcase classname="tests.test_r40_batch_demands" name="test_gallery_sort_widget_is_not_combobox" time="0.007" /><testcase classname="tests.test_r40_batch_demands" name="test_batch_all_pass_and_skip_removed" time="0.003" /><testcase classname="tests.test_r40_batch_demands" name="test_cleanup_drop_prefs_both_branches" time="0.153" /><testcase classname="tests.test_r40_batch_demands" name="test_short_reason_gives_chinese_sentences" time="0.001" /><testcase classname="tests.test_r40_batch_demands" name="test_short_reason_falls_back_without_guessing" time="0.001" /><testcase classname="tests.test_r40_batch_demands" name="test_model_catalog_and_readiness" time="0.012" /><testcase classname="tests.test_r40_batch_demands" name="test_web_requires_password_and_auth" time="0.528" /><testcase classname="tests.test_r40_batch_demands" name="test_web_page_template_uses_dollar_not_brace" time="0.003" /><testcase classname="tests.test_r40_batch_demands" name="test_only_one_log_view_is_created" time="0.005" /><testcase classname="tests.test_r40_batch_demands" name="test_log_append_tolerates_dead_view" time="0.467" /><testcase classname="tests.test_r40_batch_demands" name="test_set_stats_text_tolerates_dead_label" time="0.436" /><testcase classname="tests.test_r40_batch_demands" name="test_refresh_stats_uses_the_safe_setter" time="0.004" /><testcase classname="tests.test_r40_batch_demands" name="test_watermark_image_is_highres" time="0.003" /><testcase classname="tests.test_r40_batch_demands" name="test_watermark_follows_parent_geometry" time="0.017" /><testcase classname="tests.test_r40_batch_demands" name="test_watermark_paints_pixels_in_bottom_right" time="0.032"><failure message="AssertionError: 右下角没有水印痕迹（只建了控件、没真画出来）&#10;assert 0.0 &gt; 3&#10; +  where 0.0 = abs((0.0 - 0.0))">def test_watermark_paints_pixels_in_bottom_right():
+        """右下角像素必须真的被水印改动 —— 不能只验证控件存在。"""
+        pytest.importorskip("PySide6")
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication, QWidget
+        app = QApplication.instance() or QApplication([])
+        from media_resource_manager.gui.watermark import WatermarkOverlay
+    
+        host = QWidget()
+        host.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        host.resize(700, 300)
+        wm = WatermarkOverlay(alpha=40, parent=host)
+        wm.setGeometry(0, 0, 700, 300)
+        host.show()
+        app.processEvents()
+    
+        img = host.grab().toImage()
+    
+        def avg(x0, y0, x1, y1):
+            t = n = 0
+            for y in range(max(0, y0), min(img.height(), y1), 2):
+                for x in range(max(0, x0), min(img.width(), x1), 2):
+                    c = img.pixelColor(x, y)
+                    t += c.red() + c.green() + c.blue()
+                    n += 1
+            return t / max(1, n)
+    
+        br = avg(img.width() - 130, img.height() - 130, img.width() - 6,
+                 img.height() - 6)
+        tl = avg(6, 6, 130, 130)
+&gt;       assert abs(br - tl) &gt; 3, "右下角没有水印痕迹（只建了控件、没真画出来）"
+E       AssertionError: 右下角没有水印痕迹（只建了控件、没真画出来）
+E       assert 0.0 &gt; 3
+E        +  where 0.0 = abs((0.0 - 0.0))
+
+tests\test_r40_batch_demands.py:420: AssertionError</failure></testcase><testcase classname="tests.test_r57_watermark_overlay_geometry" name="test_overlay_geometry_is_small_bottomright_box" time="0.018" /><testcase classname="tests.test_r57_watermark_overlay_geometry" name="test_overlay_pixels_only_in_bottomright" time="5.359"><failure message="AssertionError: 水印像素跑到左边了 minx=879 W=1201&#10;assert 879 &gt;= (1201 - 320)">qapp = &lt;PySide6.QtWidgets.QApplication(0x1a45ef18760) at 0x000001A45F664D00&gt;
+
+    def test_overlay_pixels_only_in_bottomright(qapp):
+        """像素级：浮层画出的像素全部落在右下角，顶部/左上一条都不许有。"""
+        from media_resource_manager.gui.watermark import INSET
+    
+        stack, wm, theme = _mk_stack()
+        try:
+            qapp.setStyleSheet(theme.LIGHT_QSS)
+            stack.resize(1200, 800)
+            stack.show()
+            qapp.processEvents()
+            stack.resize(1201, 800)
+            qapp.processEvents()
+    
+            img = stack.grab().toImage()
+            W, H = img.width(), img.height()
+            # 蓝色水印像素的包围盒
+            minx, miny, maxx, maxy = 10 ** 9, 10 ** 9, -1, -1
+            cnt = 0
+            for y in range(H):
+                for x in range(W):
+                    c = img.pixelColor(x, y)
+                    if c.blue() &gt; 180 and c.red() &lt; 90 and c.green() &lt; 90:
+                        cnt += 1
+                        if x &lt; minx: minx = x
+                        if x &gt; maxx: maxx = x
+                        if y &lt; miny: miny = y
+                        if y &gt; maxy: maxy = y
+            assert cnt &gt; 200, f"没渲染出蓝色水印像素（cnt={cnt}）"
+            # 全部落在右下角 320x320 之内
+&gt;           assert minx &gt;= W - 320, f"水印像素跑到左边了 minx={minx} W={W}"
+E           AssertionError: 水印像素跑到左边了 minx=879 W=1201
+E           assert 879 &gt;= (1201 - 320)
+
+tests\test_r57_watermark_overlay_geometry.py:135: AssertionError</failure></testcase><testcase classname="tests.test_r57_watermark_overlay_geometry" name="test_mainwindow_watermark_is_not_fullwindow" time="0.516"><failure message="assert 50 &lt;= 1&#10; +  where 50 = abs(((1282 - 12) - (960 + 260)))&#10; +    where 1282 = &lt;built-in method width of PySide6.QtWidgets.QStackedWidget object at 0x000001A463A96D40&gt;()&#10; +      where &lt;built-in method width of PySide6.QtWidgets.QStackedWidget object at 0x000001A463A96D40&gt; = &lt;PySide6.QtWidgets.QStackedWidget(0x1a462f76400) at 0x000001A463A96D40&gt;.width&#10; +    and   960 = &lt;built-in method x of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt;()&#10; +      where &lt;built-in method x of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt; = PySide6.QtCore.QRect(960, 530, 260, 260).x&#10; +    and   260 = &lt;built-in method width of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt;()&#10; +      where &lt;built-in method width of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt; = PySide6.QtCore.QRect(960, 530, 260, 260).width">qapp = &lt;PySide6.QtWidgets.QApplication(0x1a45ef18760) at 0x000001A45F664D00&gt;
+
+    def test_mainwindow_watermark_is_not_fullwindow(qapp):
+        """真 MainWindow：水印浮层必须是右下角小方框，且沉在最底（不盖控件）。"""
+        from media_resource_manager.gui.main_window import MainWindow
+        from media_resource_manager.gui.watermark import BOX_MAX, INSET
+    
+        w = MainWindow()
+        w._ensure_single_instance = lambda *a, **k: True
+        try:
+            w.resize(1382, 899)
+            w.show()
+            qapp.processEvents()
+            wm = getattr(w, "_watermark", None)
+            st = getattr(w, "stack", None)
+            assert wm is not None and st is not None
+            g = wm.geometry()
+            assert g.width() &lt;= BOX_MAX + 2 * INSET and g.height() &lt;= BOX_MAX + 2 * INSET, (
+                f"真机水印浮层不是小方框：{g.getRect()}")
+            assert g.width() &lt; st.width() and g.height() &lt; st.height(), (
+                "真机水印浮层又铺满 stack 了")
+&gt;           assert abs((st.width() - INSET) - (g.x() + g.width())) &lt;= 1
+E           assert 50 &lt;= 1
+E            +  where 50 = abs(((1282 - 12) - (960 + 260)))
+E            +    where 1282 = &lt;built-in method width of PySide6.QtWidgets.QStackedWidget object at 0x000001A463A96D40&gt;()
+E            +      where &lt;built-in method width of PySide6.QtWidgets.QStackedWidget object at 0x000001A463A96D40&gt; = &lt;PySide6.QtWidgets.QStackedWidget(0x1a462f76400) at 0x000001A463A96D40&gt;.width
+E            +    and   960 = &lt;built-in method x of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt;()
+E            +      where &lt;built-in method x of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt; = PySide6.QtCore.QRect(960, 530, 260, 260).x
+E            +    and   260 = &lt;built-in method width of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt;()
+E            +      where &lt;built-in method width of PySide6.QtCore.QRect object at 0x000001A4628E8680&gt; = PySide6.QtCore.QRect(960, 530, 260, 260).width
+
+tests\test_r57_watermark_overlay_geometry.py:161: AssertionError</failure></testcase><testcase classname="tests.test_r57_watermark_overlay_geometry" name="test_toolbar_buttons_are_painted_without_hover" time="5.028" /><testcase classname="tests.test_r57_watermark_overlay_geometry" name="test_mainpage_watermark_visible_bottomright" time="28.671" /><testcase classname="tests.test_review_gallery_folders" name="test_stage_to_review_moves_file_out_of_output_dir" time="0.071" /><testcase classname="tests.test_review_gallery_folders" name="test_review_like_releases_back_to_output_dir" time="0.068" /><testcase classname="tests.test_review_gallery_folders" name="test_review_dislike_is_a_delete_following_the_recycle_switch" time="0.386" /><testcase classname="tests.test_review_gallery_folders" name="test_keep_images_stay_in_output_dir" time="0.108" /></testsuite></testsuites>

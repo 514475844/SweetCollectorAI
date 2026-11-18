@@ -1,0 +1,170 @@
+188 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.9
+188 INFO: Python: 3.13.14
+211 INFO: Platform: Windows-11-10.0.28000-SP0
+211 INFO: Python environment: D:\Sweet采集AI版_源码\mrm_build_work_venv
+360 INFO: Module search paths (PYTHONPATH):
+['D:\\Sweet采集AI版_源码',
+ 'D:\\Users\\1\\AppData\\Local\\Programs\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\vendor\\shim',
+ 'C:\\Users\\1\\.workbuddy\\binaries\\python\\versions\\3.13.12\\python313.zip',
+ 'C:\\Users\\1\\.workbuddy\\binaries\\python\\versions\\3.13.12\\DLLs',
+ 'C:\\Users\\1\\.workbuddy\\binaries\\python\\versions\\3.13.12\\Lib',
+ 'C:\\Users\\1\\.workbuddy\\binaries\\python\\versions\\3.13.12',
+ 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv',
+ 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages',
+ 'D:\\Sweet采集AI版_源码']
+790 INFO: Appending 'datas' from .spec
+792 INFO: checking Analysis
+808 INFO: Building because excludes changed
+808 INFO: Looking for Python shared library...
+808 INFO: Using Python shared library: C:\Users\1\.workbuddy\binaries\python\versions\3.13.12\python313.dll
+808 INFO: Running Analysis Analysis-00.toc
+808 INFO: Target bytecode optimization level: 0
+808 INFO: Initializing module dependency graph...
+809 INFO: Initializing module graph hook caches...
+819 INFO: Analyzing modules for base_library.zip ...
+2117 INFO: Processing standard module hook 'hook-encodings.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+2532 INFO: Processing standard module hook 'hook-math.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+3506 INFO: Processing standard module hook 'hook-pickle.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+4663 INFO: Processing standard module hook 'hook-heapq.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+5491 INFO: Caching module dependency graph...
+5541 INFO: Analyzing D:\Sweet采集AI版_源码\mrm_app.py
+5770 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6011 INFO: Processing standard module hook 'hook-xml.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6326 INFO: Processing standard module hook 'hook-sysconfig.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6331 INFO: Processing standard module hook 'hook-_ctypes.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6823 INFO: Processing standard module hook 'hook-cryptography.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+8388 INFO: hook-cryptography: cryptography does not seem to be using dynamically linked OpenSSL.
+8819 INFO: Processing standard module hook 'hook-PySide6.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+9175 INFO: Processing standard module hook 'hook-shiboken6.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+9414 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+12349 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+16053 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+20007 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+43165 INFO: Processing standard module hook 'hook-sqlite3.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+43587 INFO: Processing standard module hook 'hook-PIL.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+43732 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+44185 INFO: Processing standard module hook 'hook-numpy.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+44559 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+44561 INFO: SetuptoolsInfo: initializing cached setuptools info...
+45800 INFO: Processing standard module hook 'hook-platform.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+46166 INFO: Processing standard module hook 'hook-webbrowser.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+47450 INFO: Processing standard module hook 'hook-difflib.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+48592 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+48839 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+49519 INFO: Processing standard module hook 'hook-certifi.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+49672 INFO: Processing standard module hook 'hook-anyio.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+51429 INFO: Processing standard module hook 'hook-pygments.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+53517 INFO: Processing standard module hook 'hook-onnxruntime.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+53632 INFO: Processing pre-safe-import-module hook 'hook-tensorflow.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+53737 INFO: Processing standard module hook 'hook-scipy.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+54508 INFO: Processing standard module hook 'hook-pytest.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+54879 INFO: Processing standard module hook 'hook-py.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+55282 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+55593 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+55593 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+55598 INFO: Processing standard module hook 'hook-setuptools.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+55611 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+55658 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+55659 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+55669 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+55669 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+55854 INFO: Processing standard module hook 'hook-_osx_support.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+56158 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+56160 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+56168 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+56169 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+57600 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+57601 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+58985 INFO: Processing standard module hook 'hook-pycparser.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+60283 INFO: Processing standard module hook 'hook-scipy.special._ufuncs.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+60473 INFO: Processing standard module hook 'hook-scipy.linalg.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+63066 INFO: Processing standard module hook 'hook-scipy.spatial._ckdtree.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+63777 INFO: Processing standard module hook 'hook-scipy.spatial.transform.rotation.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+64989 INFO: Processing standard module hook 'hook-scipy.stats._stats.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+65800 INFO: Processing standard module hook 'hook-scipy.sparse.csgraph.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+66907 INFO: Processing standard module hook 'hook-scipy.special._ellip_harm_2.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+66984 INFO: Processing standard module hook 'hook-pywt.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+67272 INFO: Processing standard module hook 'hook-PySide6.QtSvg.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+69271 INFO: Processing standard module hook 'hook-lxml.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+69709 INFO: Processing standard module hook 'hook-lxml.etree.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+71021 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+71022 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+71057 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+71081 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+71081 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+71921 INFO: Processing module hooks (post-graph stage)...
+72468 INFO: Processing standard module hook 'hook-lxml.isoschematron.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+72486 WARNING: Hidden import "pycparser.lextab" not found!
+72486 WARNING: Hidden import "pycparser.yacctab" not found!
+72905 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+75251 WARNING: Hidden import "scipy.special._cdflib" not found!
+75313 INFO: Processing standard module hook 'hook-lxml.objectify.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+75329 INFO: Performing binary vs. data reclassification (187 entries)
+75406 INFO: Looking for ctypes DLLs
+75727 INFO: Analyzing run-time hooks ...
+75734 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75738 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75742 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75746 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75749 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75751 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+75752 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PyInstaller\\hooks'
+75755 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+75796 INFO: Creating base_library.zip...
+75812 INFO: Looking for dynamic libraries
+78821 INFO: Extra DLL search directories (AddDllDirectory): ['D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\shiboken6', 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\numpy.libs', 'D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\scipy.libs']
+78821 INFO: Extra DLL search directories (PATH): ['D:\\Sweet采集AI版_源码\\mrm_build_work_venv\\Lib\\site-packages\\PySide6']
+81956 INFO: Warnings written to D:\Sweet采集AI版_源码\build\work\pyinstaller\warn-pyinstaller.txt
+82136 INFO: Graph cross-reference written to D:\Sweet采集AI版_源码\build\work\pyinstaller\xref-pyinstaller.html
+82202 INFO: checking PYZ
+82213 INFO: Building because toc changed
+82213 INFO: Building PYZ (ZlibArchive) D:\Sweet采集AI版_源码\build\work\pyinstaller\PYZ-00.pyz
+84131 INFO: Building PYZ (ZlibArchive) D:\Sweet采集AI版_源码\build\work\pyinstaller\PYZ-00.pyz completed successfully.
+84186 INFO: checking PKG
+84187 INFO: Building because D:\Sweet采集AI版_源码\build\work\pyinstaller\PYZ-00.pyz changed
+84187 INFO: Building PKG (CArchive) MediaResourceManager.pkg
+84226 INFO: Building PKG (CArchive) MediaResourceManager.pkg completed successfully.
+84232 INFO: Bootloader D:\Sweet采集AI版_源码\mrm_build_work_venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+84232 INFO: checking EXE
+84234 INFO: Rebuilding EXE-00.toc because pkg is more recent
+84234 INFO: Building EXE from EXE-00.toc
+84235 INFO: Copying bootloader EXE to D:\Sweet采集AI版_源码\build\work\pyinstaller\MediaResourceManager.exe
+84243 INFO: Copying icon to EXE
+84248 INFO: Copying 0 resources to EXE
+84248 INFO: Embedding manifest in EXE
+84253 INFO: Appending PKG archive to EXE
+84264 INFO: Fixing EXE headers
+84356 INFO: Building EXE from EXE-00.toc completed successfully.
+84362 INFO: checking COLLECT
+84366 INFO: Building COLLECT COLLECT-00.toc
+86028 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+86044 INFO: Build complete! The results are available in: D:\Sweet采集AI版_源码\dist\MediaResourceManager
+规则漂移检查：一致 ✅（24 份）
+[OK]   babepedia.yaml
+[OK]   cosplaytele.yaml
+[OK]   danbooru.yaml
+[OK]   erome.yaml
+[OK]   everia.yaml
+[OK]   gb84791rx.yaml
+[OK]   gelbooru.yaml
+[OK]   generic-gallery.yaml
+[OK]   girlstop.yaml
+[OK]   konachan.yaml
+[OK]   naiquan05.yaml
+[OK]   ososedki.yaml
+[OK]   pichunter.yaml
+[OK]   pictoa.yaml
+[OK]   pimpandhost.yaml
+[OK]   pornpics.yaml
+[OK]   rule34.yaml
+[OK]   sexuria.yaml
+[OK]   spankbang.yaml
+[OK]   uuss4khd.yaml
+[OK]   xchina.yaml
+[OK]   xiaolu.yaml
+[OK]   xxknit.yaml
+[OK]   yandere.yaml
+[DEPLOY] gallery-dl.exe 13344501 字节 已部署
+[DEPLOY] rules 24 份 已部署
+[FLATTEN] 已拍平交付目录；外层旧物暂存于 D:\c\mrm_trash\outer_1108_022312
+[DEPLOY] OK

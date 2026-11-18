@@ -28,7 +28,7 @@ from media_resource_manager import autostart
 from media_resource_manager.logutil import (
     SanitizeFilter, sanitize_text, setup_logging)
 
-SECRET_WIN = r"<user-path>"
+SECRET_WIN = r"C:\Users\admin\AppData\Roaming\private\pic_001.jpg"
 SECRET_POSIX = "/home/u/pics/private/pic_002.jpg"
 
 

@@ -179,6 +179,12 @@ def test_stop_midway_then_resume(db, cfg, tmp_path, fake_clf):
     V0.0.22 起打标改成「并行推理 + 每批一次写回」，进度也按批上报，
     所以停止的落点从「每张之间」变成「每批之间」——同一个契约（能停、
     剩下的进待办、再跑能续上）不变，只是粒度变粗（一批最多 50 张）。
+
+    V0.0.55（断点修复）：第二轮**不带 force** —— 已入库路径会走
+    skipped_dup 分支，其中空标签行由 wake_untagged_for_retag（V0.0.7）
+    放回待打标队列，照样进得了打标阶段。老注释说「不带 force 就是 0 张」
+    是 wake 机制加进来之前的情况；现在带 force 反而错 —— force 重导
+    不许把已打好的行重置回待打标（那正是用户报的「断点失效只能从头」）。
     """
     from media_resource_manager import import_folder as imp
 
@@ -196,9 +202,7 @@ def test_stop_midway_then_resume(db, cfg, tmp_path, fake_clf):
         # 第一批打标上报进度之后立刻喊停 = 只允许跑完当前这一批
         return cur["phase"] == "tag"
 
-    # ⚠ 必须 force=True：do_tag=False 那一轮已经把行标成「已处理」，
-    #   不带 force 再跑就是「待打标 0 张」，根本进不了打标阶段（第一版这么踩的）。
-    r = imp.import_folder(db, cfg, str(lib), force=True,
+    r = imp.import_folder(db, cfg, str(lib),
                           stop=_stop, progress=_prog)
     assert r["stopped"] is True, "打标阶段被停却没标成已停止（界面会显示成完成）"
     assert 0 < r["tagged"] < 160
@@ -212,14 +216,25 @@ def test_stop_midway_then_resume(db, cfg, tmp_path, fake_clf):
 
 
 def test_force_reindexes_and_retags(db, cfg, tmp_path, fake_clf):
+    """force 重导：重新登记元数据、**保留已打好的标签**（V0.0.55 断点修复）。
+
+    老断言「force 后 tagged==1」钉的是「force 顺手把全表重置重打」的旧语义，
+    而那正是用户报的 bug（中断重开=从头再来）。force 的本意是"重新登记"
+    （文件可能变了、要刷新宽高/哈希），重打整库应该走「继续打标/重新打标」
+    专用入口，不该藏在一个复选框里。
+    """
     from media_resource_manager import import_folder as imp
 
     lib = tmp_path / "lib"
     _img(lib / "a.jpg")
     imp.import_folder(db, cfg, str(lib))
     r = imp.import_folder(db, cfg, str(lib), force=True)
-    assert r["indexed"] == 1 and r["tagged"] == 1
+    assert r["indexed"] == 1 and r["tagged"] == 0, \
+        "force 重导不该把已打标的行重置重打"
     assert db.query("SELECT COUNT(*) c FROM images")[0]["c"] == 1, "force 写成了两行"
+    row = db.query("SELECT ai_state, tags FROM images")[0]
+    assert row["ai_state"] == 1 and "person" in (row["tags"] or ""), \
+        "force 重导后标签丢了"
 
 
 def test_ai_backend_down_does_not_write_fake_tags(db, cfg, tmp_path, monkeypatch):
@@ -312,7 +327,7 @@ def test_fs_list_allows_remote_but_marks_it():
     代价用两个标记补偿：``remote`` 告诉界面"这不是你面前这台机器"，
     ``where`` 给出机器名。仍然只读、只列目录、系统目录挡掉。
     """
-    r = _fs("192.168.1.100:8080")
+    r = _fs("192.168.1.20:8080")
     assert r["ok"] is True, r
     assert r.get("remote") is True
     assert "where" in r

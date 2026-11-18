@@ -95,19 +95,19 @@ def test_e5_roundtrip_keeps_value():
 
 def test_e5_lan_open_false_private_ip_needs_password():
     """默认档（False）下，局域网地址也必须走密码 —— 免密不再默认敞开。"""
-    h = _H(_cfg(False), client_ip="192.168.1.100")
+    h = _H(_cfg(False), client_ip="192.168.1.9")
     assert h._client_allowed_by_ip() is False
 
 
 def test_e5_lan_open_true_private_ip_still_passes():
     """显式打开时行为不变（R52 契约：开了就免密）。"""
-    h = _H(_cfg(True), client_ip="192.168.1.100")
+    h = _H(_cfg(True), client_ip="192.168.1.9")
     assert h._client_allowed_by_ip() is True
 
 
 def test_e5_whitelist_independent_of_lan_open():
     """白名单是独立旋钮：lan_open=False 时白名单照样放行（叠加而非互斥）。"""
-    h = _H(_cfg(False, whitelist=["192.168.1.100"]), client_ip="192.168.1.100")
+    h = _H(_cfg(False, whitelist=["192.168.1.9"]), client_ip="192.168.1.9")
     assert h._client_allowed_by_ip() is True
 
 

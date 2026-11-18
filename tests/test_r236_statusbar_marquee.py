@@ -105,7 +105,7 @@ def test_reveal_rejects_remote_host(tmp_path, monkeypatch):
     """远程访问时打开的是服务端机器 —— 必须说清，而不是静默成功。"""
     called = []
     monkeypatch.setattr("os.startfile", lambda p: called.append(p), raising=False)
-    r, d = _reveal("192.168.1.100:8080", tmp_path, out_dir="auto")
+    r, d = _reveal("192.168.1.5:8080", tmp_path, out_dir="auto")
     assert r["ok"] is False, r
     assert "远程" in r["error"], r
     assert str(d) in r["error"], r          # 路径也要给，用户能自己去开

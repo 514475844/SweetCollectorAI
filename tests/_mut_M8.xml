@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.056" timestamp="2026-10-12T11:46:18.862211+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_quarantine_callbacks_refresh_dialog_table" time="0.505"><failure message="AssertionError: 清空后对话框表格还有 3 行（列表未刷新）&#10;assert 3 == 0&#10; +  where 3 = &lt;built-in method rowCount of _QTbl object at 0x000002497EB02C00&gt;()&#10; +    where &lt;built-in method rowCount of _QTbl object at 0x000002497EB02C00&gt; = &lt;media_resource_manager.gui.table_view._QTbl(0x24976b39620) at 0x000002497EB02C00&gt;.rowCount">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x24977fa0210) at 0x000002497A0D3E00&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002497EB23290&gt;
+
+    def test_quarantine_callbacks_refresh_dialog_table(win, monkeypatch):
+        """项14（行为）：对话框里点「清空隔离区」，**表格自己**必须变空。
+    
+        旧代码四个回调只调 self.refresh()（主窗口）⇒ 对话框表格纹丝不动，
+        用户看到「日志说清空了，列表还有一堆行」。这里真点一次按钮，
+        断言表格行数归零、库里也没了。
+    
+        ⚠ R80 变异测试（M8）抓到本判据一度**空转**：对话框本来就是打开时
+        空表（初始不填，预存行为），不先点「刷新」的话「打回缺陷原型」
+        （四个回调只留 self.refresh()）后 rowCount 依然是 0 —— 断言恒真。
+        所以必须先真点一次「刷新」把表填满、断言有行，再清空、断言归零。
+        """
+        from PySide6.QtWidgets import QTableWidget
+    
+        cnt_before = win.db.query(
+            "SELECT COUNT(*) c FROM images WHERE in_quarantine=1")[0]["c"]
+        assert cnt_before &gt;= 1, "夹具没灌进隔离区图（判据会空转）"
+    
+        # 模态一律打桩：offscreen 下没人点确定/关闭
+        monkeypatch.setattr(QDialog, "exec",
+                            lambda self: QDialog.DialogCode.Accepted)
+        monkeypatch.setattr(QMessageBox, "question",
+                            staticmethod(lambda *a, **k:
+                                         QMessageBox.StandardButton.Yes))
+        monkeypatch.setattr(QMessageBox, "information",
+                            staticmethod(lambda *a, **k: 1))
+    
+        win.quarantine_manager()
+    
+        # 找到刚才那个对话框（exec 被打桩成立刻返回，对象还活着）
+        dlg = None
+        for w in QApplication.instance().topLevelWidgets():
+            if isinstance(w, QDialog) and w.windowTitle() == "隔离区管理":
+                dlg = w
+                break
+        assert dlg is not None, "隔离区管理对话框没建出来"
+        btn = next((b for b in dlg.findChildren(QPushButton)
+                    if b.text() == "清空隔离区"), None)
+        assert btn is not None, "对话框里没有「清空隔离区」按钮"
+        tbl = next((t for t in dlg.findChildren(QTableWidget)), None)
+        assert tbl is not None, "对话框里没有表格"
+    
+        # 先真点一次「刷新」把表格填满（M8 教训：不预填则归零断言空转）
+        b_ref = next((b for b in dlg.findChildren(QPushButton)
+                      if b.text() == "刷新"), None)
+        assert b_ref is not None, "对话框里没有「刷新」按钮"
+        b_ref.click()
+        n_before = tbl.rowCount()
+        assert n_before &gt;= 1, (
+            "点刷新后表格仍是空的（判据会空转：库里有 %d 条却没填进表）"
+            % cnt_before)
+    
+        btn.click()
+    
+&gt;       assert tbl.rowCount() == 0, (
+            "清空后对话框表格还有 %d 行（列表未刷新）" % tbl.rowCount())
+E       AssertionError: 清空后对话框表格还有 3 行（列表未刷新）
+E       assert 3 == 0
+E        +  where 3 = &lt;built-in method rowCount of _QTbl object at 0x000002497EB02C00&gt;()
+E        +    where &lt;built-in method rowCount of _QTbl object at 0x000002497EB02C00&gt; = &lt;media_resource_manager.gui.table_view._QTbl(0x24976b39620) at 0x000002497EB02C00&gt;.rowCount
+
+tests\test_r80_desktop_items.py:509: AssertionError</failure></testcase></testsuite></testsuites>

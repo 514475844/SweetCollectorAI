@@ -1,0 +1,8 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\admin\Sweet
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 31 items / 28 deselected / 3 selected
+
+tests\test_r68_skin_presets.py 

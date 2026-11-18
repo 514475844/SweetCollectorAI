@@ -1,6 +1,6 @@
 # Sweet 采集 AI 版 —— Linux 无头服务端 + Docker 部署文档
 
-适用平台：**x86_64 Linux**（飞牛 FnOS / Debian / Ubuntu）。arm64 不在当前范围。
+适用平台：**x86_64 与 arm64 双架构**（飞牛 FnOS / Debian / Ubuntu / RK3399 等 ARM 盒子）。
 本文对应作业单 `DOCKER_X86_ORDER` 的 G1–G3。所有标 **【待实测】** 的数字必须在
 真机上跑完后回填——不编数字。
 
@@ -36,8 +36,13 @@ sudo systemctl enable --now docker
 mkdir -p ./data ./library ./cache
 sudo chown -R 1000:1000 ./data ./library ./cache
 
-# 2) 构建
-docker build -t mrm:x86_64 .            # 想开 GPU：--build-arg USE_GPU=1
+# 2) 构建（本机是什么架构就出什么镜像；跨架构用 buildx）
+docker build -t mrm:x86_64 .            # x86_64 本机；想开 GPU：--build-arg USE_GPU=1
+docker build -t mrm:arm64 .             # 在 ARM 机器（RK3399/飞牛）上本机直接构建
+# 跨架构（x86 机器出 arm64 镜像）需 buildx + QEMU：
+#   docker buildx build --platform linux/arm64 -t mrm:arm64 --load .
+# compose 默认镜像 tag 跟随 MRM_ARCH 变量：x86 不设、ARM 上 `export MRM_ARCH=arm64`。
+# USE_GPU=1 仅 x86_64 有意义（CUDA）；arm64 保持 0，靠 CPU 慢速打标即可。
 
 # 3) 启动
 docker compose up -d

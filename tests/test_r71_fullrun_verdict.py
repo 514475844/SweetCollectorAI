@@ -43,8 +43,8 @@ def _run_pytest(args, timeout=120):
     cmd = [sys.executable, "-X", "utf8", "-m", "pytest", *args]
     env = {"PYTHONUNBUFFERED": "1", "QT_QPA_PLATFORM": "offscreen",
            "PATH": "/usr/bin:/bin", "SYSTEMROOT": "C:/Windows",
-           "HOME": "/tmp", "TEMP": "<user-path>",
-           "TMP": "<user-path>"}
+           "HOME": "/tmp", "TEMP": "C:/Users/admin/AppData/Local/Temp",
+           "TMP": "C:/Users/admin/AppData/Local/Temp"}
     p = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True,
                        encoding="utf-8", errors="replace", timeout=timeout,
                        env=env)

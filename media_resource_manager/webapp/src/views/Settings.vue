@@ -113,6 +113,76 @@ async function checkAppUpdate() {
   finally { aboutBusy.value = false }
 }
 
+// ── V0.0.55 批1：定时自动关机（动作式：即时 POST /api/powerdown，不进草稿）──
+const pdBusy = ref(false)
+const pdMode = ref('')            // '' | on_idle | daily
+const pdAt = ref('23:30')
+const pdGraceMin = ref(3)
+const pdCountdown = ref(60)
+const pdPlan = ref({})            // 后端 GET /api/powerdown 的当前计划
+async function pdRefresh() {
+  try {
+    const r = await api.powerdown()
+    if (!r || r.ok === false) return
+    pdPlan.value = r.plan || {}
+    pdCountdown.value = Number(r.plan?.countdown || 60)
+    // 内存里有每日/空闲计划时回填下拉，避免界面和实际计划两张皮
+    if (r.plan?.mode === 'at_time' && r.plan?.daily) {
+      pdMode.value = 'daily'
+      if (r.plan.at_hhmm) pdAt.value = r.plan.at_hhmm
+    } else if (r.plan?.mode === 'on_idle') {
+      pdMode.value = 'on_idle'
+    }
+  } catch { /* 读不到不挡页面 */ }
+}
+const pdPlanText = computed(() => {
+  const p = pdPlan.value || {}
+  if (p.mode === 'at_time') {
+    const t = p.target_ts ? new Date(p.target_ts * 1000) : null
+    const when = p.daily ? `每日 ${p.at_hhmm || (t ? t.toTimeString().slice(0, 5) : '?')}`
+      : (t ? t.toLocaleString('zh-CN', { hour12: false }) : '定点')
+    return `${when} · 关机前倒计时 ${p.countdown || 60} 秒`
+  }
+  if (p.mode === 'on_idle') return `任务全部跑完（队列连续空闲）后关机 · 倒计时 ${p.countdown || 60} 秒`
+  return ''
+})
+async function pdApply() {
+  pdBusy.value = true
+  try {
+    let body = null
+    if (pdMode.value === 'on_idle') {
+      body = { mode: 'on_idle', countdown: pdCountdown.value,
+               idle_grace: Math.max(60, (pdGraceMin.value || 3) * 60) }
+    } else if (pdMode.value === 'daily') {
+      body = { mode: 'at_time', at: pdAt.value, daily: true, countdown: pdCountdown.value }
+    } else {
+      body = { mode: 'off' }
+    }
+    const r = await api.post('/api/powerdown', body)
+    if (r && r.ok === false) { err.value = r.error || '安排失败'; return }
+    pdPlan.value = (r && r.plan) || {}
+    info.value = pdMode.value === 'on_idle' ? '已安排：任务跑完后自动关机'
+      : pdMode.value === 'daily' ? `已安排：每日 ${pdAt.value} 自动关机`
+      : '已取消自动关机'
+    setTimeout(() => (info.value = ''), 3500)
+  } catch (e) { err.value = e.message || '安排失败' }
+  finally { pdBusy.value = false }
+}
+function pdSetMode(v) {
+  pdMode.value = v
+  pdApply()
+}
+async function pdCancel() {
+  try {
+    const r = await api.post('/api/powerdown', { mode: 'off' })
+    if (r && r.ok === false) { err.value = r.error || '取消失败'; return }
+    pdMode.value = ''
+    pdPlan.value = (r && r.plan) || {}
+    info.value = '已取消自动关机'
+    setTimeout(() => (info.value = ''), 3000)
+  } catch (e) { err.value = e.message }
+}
+
 async function toggleAutostart(on) {
   try {
     const r = await api.sysAutostart(on)
@@ -1149,6 +1219,53 @@ onUnmounted(() => {
           <span class="tiny muted" v-if="planDirty">存在未保存的修改</span>
         </div>
       </section>
+
+    <!-- V0.0.55 批1：定时自动关机。安排/取消都是「动作」，即时调接口，
+         不进草稿；每日定点由后端落盘、重启自动续，其余只在本机这一次生效。 -->
+    <section class="card sec" v-show="onTab('ui') && !search.trim()">
+      <h3>定时自动关机</h3>
+      <div class="row">
+        <label>关机方式</label>
+        <div class="inline">
+          <select :value="pdMode" @change="pdSetMode($event.target.value)">
+            <option value="">不自动关机</option>
+            <option value="on_idle">任务全部跑完后关机</option>
+            <option value="daily">每日定点关机</option>
+          </select>
+          <span class="muted small">关机前均有 {{ pdCountdown }} 秒倒计时，右下角通知里可点「取消」</span>
+        </div>
+      </div>
+      <div class="row" v-if="pdMode === 'on_idle'">
+        <label>空闲判定（分钟）</label>
+        <div class="inline">
+          <input class="num" type="number" min="1" max="120" v-model.number="pdGraceMin" />
+          <span class="muted small">队列连续空闲达到该时长才动手，防止任务间隙被误判为跑完</span>
+        </div>
+      </div>
+      <div class="row" v-if="pdMode === 'daily'">
+        <label>每日时刻</label>
+        <div class="inline">
+          <input type="time" v-model="pdAt" @change="pdApply()" />
+          <span class="muted small">到点关机并每天重复；软件重启后自动续上</span>
+        </div>
+      </div>
+      <div class="row" v-if="pdMode === 'on_idle'">
+        <label></label>
+        <div class="inline">
+          <button class="btn sm primary" :disabled="pdBusy" @click="pdApply()">
+            <Icon name="check" :size="13" />{{ pdBusy ? '安排中…' : '确认安排' }}</button>
+          <span class="muted small">只对这次开机期间生效；期间可随时取消</span>
+        </div>
+      </div>
+      <div class="row" v-if="pdPlan.mode">
+        <label>当前计划</label>
+        <div class="inline">
+          <span class="ok small">{{ pdPlanText }}</span>
+          <button class="btn sm danger" @click="pdCancel()">
+            <Icon name="x" :size="13" />取消计划</button>
+        </div>
+      </div>
+    </section>
 
 <section v-for="sec in pageSections" :key="sec.title" class="card sec">
       <h3>{{ sec.title }}</h3>

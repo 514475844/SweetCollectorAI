@@ -97,7 +97,7 @@ def _toggle_web_src() -> str:
 # ------------------------------------------------------------ 行为：免密直进
 
 
-@pytest.mark.parametrize("ip", ["127.0.0.1", "::1", "192.168.1.100", "10.0.0.5"])
+@pytest.mark.parametrize("ip", ["127.0.0.1", "::1", "192.168.1.9", "10.0.0.5"])
 def test_empty_password_goes_straight_in_from_local_and_lan(ip):
     """★ R141 第 2 条：空密码 + 本机/局域网 → 不弹密码框，直接进。"""
     h = _H(_cfg(password=""), client_ip=ip)

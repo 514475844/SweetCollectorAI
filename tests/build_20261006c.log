@@ -1,0 +1,117 @@
+174 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.8
+174 INFO: Python: 3.11.9
+205 INFO: Platform: Windows-10-10.0.19045-SP0
+205 INFO: Python environment: C:\Users\Admin\venvs\mrm
+209 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\admin\\Sweet',
+ 'C:\\Users\\Admin\\AppData\\Local\\Programs\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\vendor\\shim',
+ 'C:\\Users\\admin\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip',
+ 'C:\\Users\\admin\\AppData\\Local\\Programs\\Python\\Python311\\DLLs',
+ 'C:\\Users\\admin\\AppData\\Local\\Programs\\Python\\Python311\\Lib',
+ 'C:\\Users\\admin\\AppData\\Local\\Programs\\Python\\Python311',
+ 'C:\\Users\\Admin\\venvs\\mrm',
+ 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages',
+ 'C:\\Users\\admin\\Sweet']
+740 INFO: Appending 'datas' from .spec
+741 INFO: checking Analysis
+772 INFO: Building because hookspath changed
+772 INFO: Looking for Python shared library...
+772 INFO: Using Python shared library: C:\Users\admin\AppData\Local\Programs\Python\Python311\python311.dll
+772 INFO: Running Analysis Analysis-00.toc
+773 INFO: Target bytecode optimization level: 0
+773 INFO: Initializing module dependency graph...
+774 INFO: Initializing module graph hook caches...
+795 INFO: Analyzing modules for base_library.zip ...
+2264 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+2391 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+4489 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+4641 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+6487 INFO: Caching module dependency graph...
+6539 INFO: Analyzing C:\Users\admin\Sweet\mrm_app.py
+6759 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+6989 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+7398 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+8781 INFO: Processing standard module hook 'hook-PySide6.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+9152 INFO: Processing standard module hook 'hook-shiboken6.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+9450 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+16637 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+23728 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+57532 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+63811 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+64323 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+64459 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+65009 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+65605 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+65606 INFO: SetuptoolsInfo: initializing cached setuptools info...
+66799 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+67578 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+67700 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+68443 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+70728 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+70993 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+71952 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+72129 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+73708 INFO: Processing standard module hook 'hook-pygments.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+75844 INFO: Processing standard module hook 'hook-scipy.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+76800 INFO: Processing standard module hook 'hook-pytest.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+77209 INFO: Processing standard module hook 'hook-py.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+77699 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+78092 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+79656 INFO: Processing standard module hook 'hook-pkg_resources.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+82138 INFO: Processing standard module hook 'hook-scipy.special._ufuncs.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+82468 INFO: Processing standard module hook 'hook-scipy.linalg.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+85785 INFO: Processing standard module hook 'hook-scipy.spatial._ckdtree.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+86894 INFO: Processing standard module hook 'hook-scipy.spatial.transform.rotation.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+88716 INFO: Processing standard module hook 'hook-scipy.stats._stats.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+89580 INFO: Processing standard module hook 'hook-scipy.sparse.csgraph.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+91160 INFO: Processing standard module hook 'hook-scipy.special._ellip_harm_2.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+91273 INFO: Processing standard module hook 'hook-pywt.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+91516 INFO: Processing standard module hook 'hook-PySide6.QtSvg.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+93994 INFO: Processing standard module hook 'hook-lxml.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+94506 INFO: Processing standard module hook 'hook-lxml.etree.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+95611 INFO: Processing module hooks (post-graph stage)...
+96355 INFO: Processing standard module hook 'hook-lxml.isoschematron.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+97035 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+97125 INFO: Processing pre-safe-import-module hook 'hook-win32com.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+101554 WARNING: Hidden import "scipy.special._cdflib" not found!
+101561 INFO: Processing standard module hook 'hook-lxml.objectify.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+101595 INFO: Performing binary vs. data reclassification (145 entries)
+101654 INFO: Looking for ctypes DLLs
+102501 INFO: Analyzing run-time hooks ...
+102510 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+102515 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+102518 INFO: Including run-time hook 'pyi_rth_pkgres.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+102523 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+102526 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+102529 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+102532 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PyInstaller\\hooks'
+102585 INFO: Creating base_library.zip...
+102621 INFO: Looking for dynamic libraries
+106403 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\shiboken6', 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\numpy.libs', 'C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\scipy.libs']
+106404 INFO: Extra DLL search directories (PATH): ['C:\\Users\\Admin\\venvs\\mrm\\Lib\\site-packages\\PySide6']
+113743 INFO: Warnings written to C:\Users\admin\build\pyinstaller\warn-pyinstaller.txt
+114045 INFO: Graph cross-reference written to C:\Users\admin\build\pyinstaller\xref-pyinstaller.html
+114124 INFO: checking PYZ
+114145 INFO: Building because toc changed
+114145 INFO: Building PYZ (ZlibArchive) C:\Users\admin\build\pyinstaller\PYZ-00.pyz
+116440 INFO: Building PYZ (ZlibArchive) C:\Users\admin\build\pyinstaller\PYZ-00.pyz completed successfully.
+116489 INFO: checking PKG
+116490 INFO: Building because toc changed
+116490 INFO: Building PKG (CArchive) MediaResourceManager.pkg
+116533 INFO: Building PKG (CArchive) MediaResourceManager.pkg completed successfully.
+116534 INFO: Bootloader C:\Users\Admin\venvs\mrm\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+116534 INFO: checking EXE
+116535 INFO: Building because toc changed
+116535 INFO: Building EXE from EXE-00.toc
+116537 INFO: Copying bootloader EXE to C:\Users\admin\build\pyinstaller\MediaResourceManager.exe
+116543 INFO: Copying icon to EXE
+116548 INFO: Copying 0 resources to EXE
+116548 INFO: Embedding manifest in EXE
+116552 INFO: Appending PKG archive to EXE
+116567 INFO: Fixing EXE headers
+116790 INFO: Building EXE from EXE-00.toc completed successfully.
+116798 INFO: checking COLLECT
+116806 INFO: Building COLLECT COLLECT-00.toc
+117666 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+117678 INFO: Build complete! The results are available in: C:\Users\admin\dist
+[PARK] 旧产物已移出打包路径：C:\Users\admin\dist\MediaResourceManager -> C:\Users\Admin\mrm_trash\MediaResourceManager_1006_063245

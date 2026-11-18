@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.307" timestamp="2026-10-12T11:45:43.807458+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_task_row_text_follows_skin_switch" time="0.773"><failure message="AssertionError: 切到暗夜风后 name 字色没跟着换：'#1f2430'（应为 '#e7eaf0'）—— 这就是「列表文字看不清」的缺陷形态&#10;assert ('#1f2430' is not None and '#1f2430' == '#e7eaf0'&#10;  &#10;  - #e7eaf0&#10;  + #1f2430)">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x1ffae63c2f0) at 0x000001FFB778C700&gt;
+
+    def test_task_row_text_follows_skin_switch(win):
+        """项11（行为·核心回归）：浅色 → 暗夜风，旧行的字必须换成浅色。
+    
+        复现路径就是用户那条：行早就建好（L2 增量刷新不重建行）→ 换肤 →
+        旧行拿着浅色调色板的深字坐在暗底上。修好后 _restyle_registered
+        会把登记过的模板按新皮肤重渲，无需重建行。
+        """
+        win.set_skin("violet_look")
+        win.refresh()
+        rows = _row_widgets(win)
+        assert rows, "卡片视图里没有 TaskRow（灌的任务没刷出来？）"
+        row = rows[0]
+        labels = _text_labels(row)
+        assert labels, "TaskRow 里一个带样式的文字标签都没有（判据失效）"
+        name_lbl = next(c for c in labels if "font-weight" in (c.styleSheet() or ""))
+        light_color = _style_color(name_lbl)
+        assert light_color is not None, "换肤前 name 标签就没有颜色（判据失效）"
+        pal_l = theme.palette(False)
+        assert light_color.lower() == pal_l["text"].lower(), (
+            "浅色下 name 字色不是 palette.text：%r vs %r"
+            % (light_color, pal_l["text"]))
+    
+        # ── 关键动作：只换肤，不重建行 ──
+        win.set_skin("night")
+        dark_color = _style_color(name_lbl)
+        pal_d = theme.palette(True)
+&gt;       assert dark_color is not None and dark_color.lower() == pal_d["text"].lower(), (
+            "切到暗夜风后 name 字色没跟着换：%r（应为 %r）—— "
+            "这就是「列表文字看不清」的缺陷形态" % (dark_color, pal_d["text"]))
+E       AssertionError: 切到暗夜风后 name 字色没跟着换：'#1f2430'（应为 '#e7eaf0'）—— 这就是「列表文字看不清」的缺陷形态
+E       assert ('#1f2430' is not None and '#1f2430' == '#e7eaf0'
+E         
+E         - #e7eaf0
+E         + #1f2430)
+
+tests\test_r80_desktop_items.py:388: AssertionError</failure></testcase></testsuite></testsuites>

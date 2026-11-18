@@ -58,6 +58,8 @@ _ENV_MAP: dict[str, tuple[str, str]] = {
     "MRM_TRUST_PROXY":     ("trust_proxy", "bool"),    # E1，默认 0；实现见 webui._client_ip
     "MRM_WEB_ENABLED":     ("web_enabled", "bool"),    # E15
     "MRM_AI":              ("ai_enabled_global", "bool"),  # E15
+    "MRM_AI_THREADS":      ("ai_threads", "int"),      # V0.0.55：ARM 小机器压线程用（0=自动封顶）
+    "MRM_CONCURRENCY":     ("concurrency", "int"),     # V0.0.55：抓取并发（容器侧可调）
     "MRM_COMPLIANCE_LEVEL": ("compliance_level", "str"),   # E15（值域见下方校验）
 }
 

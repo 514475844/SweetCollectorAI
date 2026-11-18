@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="5" time="4.535" timestamp="2026-10-12T11:45:58.398998+08:00" hostname="DESKTOP-137VDHK"><testcase classname="tests.test_r80_desktop_items" name="test_download_page_has_no_four_action_buttons[classic]" time="0.588"><failure message="AssertionError: classic 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']&#10;assert ['新建任务', '全部开始', '全部停止', '编辑'] == []&#10;  &#10;  Left contains 4 more items, first extra item: '新建任务'&#10;  Use -v to get more diff">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x257430b4060) at 0x0000025745B5BE00&gt;
+preset = 'classic'
+
+    @pytest.mark.parametrize("preset", sorted(theme.PRESETS))
+    def test_download_page_has_no_four_action_buttons(win, preset):
+        """项3：任务页工具条 4 个按钮任何皮肤下都不许存在（撤功能要撤干净）。"""
+        win.set_skin(preset)
+        page0 = win.stack.widget(PAGE0)
+        left = [b.text() for b in page0.findChildren(QPushButton)
+                if b.text() in BANNED_BTN_TEXTS]
+&gt;       assert left == [], "%s 皮肤下任务页还剩这些按钮：%r" % (preset, left)
+E       AssertionError: classic 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']
+E       assert ['新建任务', '全部开始', '全部停止', '编辑'] == []
+E         
+E         Left contains 4 more items, first extra item: '新建任务'
+E         Use -v to get more diff
+
+tests\test_r80_desktop_items.py:163: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_download_page_has_no_four_action_buttons[modern]" time="0.228"><failure message="AssertionError: modern 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']&#10;assert ['新建任务', '全部开始', '全部停止', '编辑'] == []&#10;  &#10;  Left contains 4 more items, first extra item: '新建任务'&#10;  Use -v to get more diff">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x257430b4060) at 0x0000025745B5BE00&gt;
+preset = 'modern'
+
+    @pytest.mark.parametrize("preset", sorted(theme.PRESETS))
+    def test_download_page_has_no_four_action_buttons(win, preset):
+        """项3：任务页工具条 4 个按钮任何皮肤下都不许存在（撤功能要撤干净）。"""
+        win.set_skin(preset)
+        page0 = win.stack.widget(PAGE0)
+        left = [b.text() for b in page0.findChildren(QPushButton)
+                if b.text() in BANNED_BTN_TEXTS]
+&gt;       assert left == [], "%s 皮肤下任务页还剩这些按钮：%r" % (preset, left)
+E       AssertionError: modern 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']
+E       assert ['新建任务', '全部开始', '全部停止', '编辑'] == []
+E         
+E         Left contains 4 more items, first extra item: '新建任务'
+E         Use -v to get more diff
+
+tests\test_r80_desktop_items.py:163: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_download_page_has_no_four_action_buttons[night]" time="0.231"><failure message="AssertionError: night 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']&#10;assert ['新建任务', '全部开始', '全部停止', '编辑'] == []&#10;  &#10;  Left contains 4 more items, first extra item: '新建任务'&#10;  Use -v to get more diff">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x257430b4060) at 0x0000025745B5BE00&gt;
+preset = 'night'
+
+    @pytest.mark.parametrize("preset", sorted(theme.PRESETS))
+    def test_download_page_has_no_four_action_buttons(win, preset):
+        """项3：任务页工具条 4 个按钮任何皮肤下都不许存在（撤功能要撤干净）。"""
+        win.set_skin(preset)
+        page0 = win.stack.widget(PAGE0)
+        left = [b.text() for b in page0.findChildren(QPushButton)
+                if b.text() in BANNED_BTN_TEXTS]
+&gt;       assert left == [], "%s 皮肤下任务页还剩这些按钮：%r" % (preset, left)
+E       AssertionError: night 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']
+E       assert ['新建任务', '全部开始', '全部停止', '编辑'] == []
+E         
+E         Left contains 4 more items, first extra item: '新建任务'
+E         Use -v to get more diff
+
+tests\test_r80_desktop_items.py:163: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_download_page_has_no_four_action_buttons[qbittorrent]" time="0.235"><failure message="AssertionError: qbittorrent 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']&#10;assert ['新建任务', '全部开始', '全部停止', '编辑'] == []&#10;  &#10;  Left contains 4 more items, first extra item: '新建任务'&#10;  Use -v to get more diff">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x257430b4060) at 0x0000025745B5BE00&gt;
+preset = 'qbittorrent'
+
+    @pytest.mark.parametrize("preset", sorted(theme.PRESETS))
+    def test_download_page_has_no_four_action_buttons(win, preset):
+        """项3：任务页工具条 4 个按钮任何皮肤下都不许存在（撤功能要撤干净）。"""
+        win.set_skin(preset)
+        page0 = win.stack.widget(PAGE0)
+        left = [b.text() for b in page0.findChildren(QPushButton)
+                if b.text() in BANNED_BTN_TEXTS]
+&gt;       assert left == [], "%s 皮肤下任务页还剩这些按钮：%r" % (preset, left)
+E       AssertionError: qbittorrent 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']
+E       assert ['新建任务', '全部开始', '全部停止', '编辑'] == []
+E         
+E         Left contains 4 more items, first extra item: '新建任务'
+E         Use -v to get more diff
+
+tests\test_r80_desktop_items.py:163: AssertionError</failure></testcase><testcase classname="tests.test_r80_desktop_items" name="test_download_page_has_no_four_action_buttons[violet_look]" time="0.262"><failure message="AssertionError: violet_look 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']&#10;assert ['新建任务', '全部开始', '全部停止', '编辑'] == []&#10;  &#10;  Left contains 4 more items, first extra item: '新建任务'&#10;  Use -v to get more diff">win = &lt;media_resource_manager.gui.main_window.MainWindow(0x257430b4060) at 0x0000025745B5BE00&gt;
+preset = 'violet_look'
+
+    @pytest.mark.parametrize("preset", sorted(theme.PRESETS))
+    def test_download_page_has_no_four_action_buttons(win, preset):
+        """项3：任务页工具条 4 个按钮任何皮肤下都不许存在（撤功能要撤干净）。"""
+        win.set_skin(preset)
+        page0 = win.stack.widget(PAGE0)
+        left = [b.text() for b in page0.findChildren(QPushButton)
+                if b.text() in BANNED_BTN_TEXTS]
+&gt;       assert left == [], "%s 皮肤下任务页还剩这些按钮：%r" % (preset, left)
+E       AssertionError: violet_look 皮肤下任务页还剩这些按钮：['新建任务', '全部开始', '全部停止', '编辑']
+E       assert ['新建任务', '全部开始', '全部停止', '编辑'] == []
+E         
+E         Left contains 4 more items, first extra item: '新建任务'
+E         Use -v to get more diff
+
+tests\test_r80_desktop_items.py:163: AssertionError</failure></testcase></testsuite></testsuites>

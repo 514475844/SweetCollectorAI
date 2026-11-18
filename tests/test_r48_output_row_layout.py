@@ -192,7 +192,7 @@ def test_open_new_task_does_not_unhide_the_label(win):
 
 def test_checking_reuse_fills_the_edit_box(win, qapp):
     """C：勾上「沿用上次目录」→ 上次目录**直接出现在编辑框里**。"""
-    want = "<user-path>"
+    want = "C:/Users/Admin/Desktop/Sweet/data"
     win.cfg.last_output_dir = want
     win._cb_reuse_last.setChecked(True)
     qapp.processEvents()
