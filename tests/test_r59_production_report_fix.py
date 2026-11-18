@@ -546,15 +546,18 @@ def test_p1_3_error_message_is_plain_language():
 
 
 def test_p1_3_error_points_to_autogen_entry():
-    """报错必须指向那个真实存在的入口「自动生成规则」。"""
+    """报错必须指向一个真实存在的入口。
+
+    V0.0.54 定案后网页端「自动生成规则」入口已移除，报错改指
+    「适配器市场」与「手动新建规则」—— 护栏跟着改判到这两个真实入口。
+    """
     blob = "\n".join(_unsupported_strings())
-    assert "分析这个网址 / 自动生成规则" in blob, \
-        "报错没指向「自动生成规则」这个可点入口"
+    assert "适配器市场" in blob, "报错没指向「适配器市场」这个可点入口"
+    assert "手动新建规则" in blob, "报错没给手动新建的出路"
     # 入口必须真的存在（别写一个不存在的按钮）
-    mw = open(os.path.join(ROOT, "media_resource_manager", "gui", "main_window.py"),
-              encoding="utf-8").read()
-    assert "分析这个网址 / 自动生成规则" in mw, \
-        "报错推荐的入口在界面上并不存在 —— 那是骗人的指引"
+    av = open(os.path.join(ROOT, "media_resource_manager", "webapp", "src",
+                           "views", "Adapters.vue"), encoding="utf-8").read()
+    assert "适配器市场" in av, "报错推荐的入口在界面上并不存在 —— 那是骗人的指引"
 
 
 def test_p1_3_site_count_claim_is_true():

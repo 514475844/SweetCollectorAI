@@ -134,13 +134,25 @@ def audit_log_csv(db) -> bytes:
     return ("\ufeff" + buf.getvalue()).encode("utf-8")
 
 
-def prune_quarantine(db) -> dict:
-    """物理删除隔离区里未收藏 / 未拉黑 / 未待审的图（桌面同一条 SQL）。"""
-    n = int(db.quarantine_prune(10 ** 6) or 0)
-    return {"ok": True, "deleted": n,
-            "note": (f"已删除 {n} 张隔离图对应的磁盘文件，操作不可撤销。"
+def prune_quarantine(db, keep_days: int = 0) -> dict:
+    """物理删除隔离区里未收藏 / 未拉黑 / 未待审的图（桌面同一条 SQL）。
+
+    V0.0.56：``keep_days`` > 0 时只清「隔离超过这么多天」的图（按保留期自动
+    清理）；=0 或极大值表示全清（原行为不变）。天数上限钳到 10 年防误填。
+    """
+    try:
+        days = int(keep_days or 0)
+    except (TypeError, ValueError):
+        days = 0
+    if days <= 0:
+        days = 10 ** 6                    # 全清（原行为）
+    days = min(days, 3650)                # 上限 10 年，防手滑填天文数字
+    n = int(db.quarantine_prune(days) or 0)
+    _scope = f"隔离超过 {days} 天、" if keep_days and int(keep_days or 0) > 0 else ""
+    return {"ok": True, "deleted": n, "keep_days": days,
+            "note": (f"已删除 {_scope}未收藏未拉黑未待审的 {n} 张隔离图，操作不可撤销。"
                      "已收藏、已拉黑与待审核的图片均未改动。") if n else
-                    "隔离区已经是空的，未删除任何文件。"}
+                    "没有符合条件的隔离图，未删除任何文件。"}
 
 
 def cleanup_items() -> list[dict]:

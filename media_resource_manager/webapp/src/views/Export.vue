@@ -293,6 +293,33 @@ onUnmounted(() => {
         <div v-if="tune.ok" class="tune-ok">
           <div class="big">建议合格线 {{ tune.suggested }}</div>
           <p class="muted small">{{ tune.note }}</p>
+          <!-- V0.0.56：混淆矩阵 + 误判样例。四格口径见 threshold_tune._confusion。 -->
+          <div v-if="tune.confusion" class="confusion">
+            <div class="muted tiny">按建议线复算（正=收藏，负=判退）</div>
+            <table class="cm">
+              <thead><tr><th></th><th>判为合格</th><th>判为不合格</th></tr></thead>
+              <tbody>
+                <tr><th>实为收藏</th>
+                  <td class="good">{{ tune.confusion.tp }} 留住</td>
+                  <td class="bad">{{ tune.confusion.fn }} 误伤</td></tr>
+                <tr><th>实为判退</th>
+                  <td class="bad">{{ tune.confusion.fp }} 漏放</td>
+                  <td class="good">{{ tune.confusion.tn }} 拦对</td></tr>
+              </tbody>
+            </table>
+            <div v-if="tune.mistakes" class="mistakes">
+              <p v-if="(tune.mistakes.false_negative || []).length" class="muted tiny">
+                误伤的好图（第 {{ tune.suggested }} 线以下）：
+                <span v-for="m in tune.mistakes.false_negative" :key="m.id">
+                  #{{ m.id }}({{ m.score }}) </span>
+              </p>
+              <p v-if="(tune.mistakes.false_positive || []).length" class="muted tiny">
+                漏放的坏图（第 {{ tune.suggested }} 线以上）：
+                <span v-for="m in tune.mistakes.false_positive" :key="m.id">
+                  #{{ m.id }}({{ m.score }}) </span>
+              </p>
+            </div>
+          </div>
           <label class="chk">
             <input v-model="applyTasks" type="checkbox" />
             同时覆盖所有任务中已填写的合格线
@@ -521,6 +548,13 @@ onUnmounted(() => {
 .kv span { color: var(--muted); }
 .tune-ok { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
 .big { font-size: 16px; font-weight: 600; color: var(--brand); margin-bottom: 4px; }
+.confusion { margin: 10px 0; }
+.confusion .cm { border-collapse: collapse; margin-top: 4px; font-size: 12px; }
+.confusion .cm th, .confusion .cm td { border: 1px solid var(--line); padding: 4px 10px; text-align: center; }
+.confusion .cm th { color: var(--muted); font-weight: 500; }
+.confusion .cm td.good { color: #1a8a5a; }
+.confusion .cm td.bad { color: #d14b4b; }
+.mistakes p { margin: 5px 0 0; }
 .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; margin-right: 12px; }
 .chk.inline { margin-right: 0; }
 .form { display: flex; flex-direction: column; gap: 10px; }

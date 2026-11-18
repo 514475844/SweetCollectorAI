@@ -473,6 +473,7 @@ async function act(actName, ids) {
         ids: list, options: opt,
         selU: new Set(), selE: new Set(),
         manual: '', preview: '', mis: false, correct: '',
+        cats: new Set(),
         submitting: false,
       }
       return
@@ -550,6 +551,8 @@ async function dmSubmit() {
     if (!extra.exclusions.includes(manual)) extra.exclusions.push(manual)
   }
   if (correct.length) extra.correct = correct
+  // V0.0.56：类别原因（"主题不符/低质/…"）随动作落库到 reviews，供统计。
+  if (m.cats && m.cats.size) extra.reason_cat = [...m.cats]
   m.submitting = true
   busy.value = true
   try {
@@ -565,14 +568,16 @@ async function dmSubmit() {
   }
 }
 async function dmPure() {
-  // 「单纯不喜欢」：不带任何理由，但桌面口径允许同时带「正确标签」
+  // 「单纯不喜欢」：不带词级理由，但保留已勾的类别原因与「正确标签」
   const m = dislikeModal.value
   if (!m) return
   const correct = m.mis
     ? String(m.correct || '').split(/\s+/).filter(Boolean).slice(0, 10) : []
+  const extra = { unmatched: [], correct }
+  if (m.cats && m.cats.size) extra.reason_cat = [...m.cats]
   busy.value = true
   try {
-    const res = await api.imageAction(m.ids, 'dislike', { unmatched: [], correct })
+    const res = await api.imageAction(m.ids, 'dislike', extra)
     notifyLearned(res)
     await afterAction(m.ids, 'dislike')
     dislikeModal.value = null
@@ -1234,6 +1239,16 @@ const likeLabel = computed(() =>
             <p v-if="dislikeModal.preview" class="dm-pv">{{ dislikeModal.preview }}</p>
           </div>
         </div>
+        <!-- V0.0.56：类别原因标签（与词级分开，落 reviews.reason_cat）。
+             可全不选；选了仅作统计/审计，不影响下面的词级学习逻辑。 -->
+        <div class="dm-cats">
+          <span class="muted small">原因类别（可多选，仅用于统计）：</span>
+          <label v-for="c in ['主题不符','低质','重复','水印','来源不想要','稍后再看']"
+                 :key="c" class="dm-tag">
+            <input type="checkbox" :checked="dislikeModal.cats && dislikeModal.cats.has(c)"
+                   @change="dmToggle('cats', c)" /> {{ c }}
+          </label>
+        </div>
         <div class="dm-mis">
           <label class="dm-ck">
             <input type="checkbox" v-model="dislikeModal.mis" />
@@ -1468,6 +1483,10 @@ const likeLabel = computed(() =>
          cursor: pointer; padding: 2px 4px; border-radius: 6px; }
 .dm-ck:hover { background: var(--surface_alt, #f5f3ff); }
 .dm-pv { font-size: 12px; color: var(--brand, #6d5bd0); margin: 4px 0 0; white-space: pre-wrap; }
+.dm-cats { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+  margin: 8px 0; padding: 8px 0; border-top: 1px dashed var(--border, #444); }
+.dm-tag { display: inline-flex; gap: 4px; align-items: center; font-size: 12px;
+  padding: 3px 8px; border: 1px solid var(--border, #444); border-radius: 12px; cursor: pointer; }
 .dm-mis { border-top: 1px dashed var(--border, #444); margin-top: 6px; padding-top: 8px;
           display: grid; gap: 6px; }
 .dm-mis .tiny { margin: 0; }

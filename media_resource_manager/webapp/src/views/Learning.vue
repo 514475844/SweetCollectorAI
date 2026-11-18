@@ -17,6 +17,7 @@ const busy = ref('')
 // V0.0.7：被判掉过的图教出来的「以后别找」词
 const fb = ref([])
 const fbHard = ref(2)
+const fbShadow = ref(true)
 const fbBusy = ref(false)
 
 // 统计卡的字段与中文名（后端 collect 的键，顺序即展示顺序）
@@ -130,6 +131,7 @@ async function loadFb() {
     const r = await api.feedback()
     fb.value = r.items || []
     fbHard.value = r.hard_hits || 2
+    fbShadow.value = r.shadow !== false
   } catch (e) {
     // 后端没有这个接口时不该让整页打不开，安静略过即可
     fb.value = []
@@ -257,6 +259,11 @@ useShellRefresh(() => { load(); loadFb(); loadTerms() })
       <p class="muted small">
         判退 1 次：同类图片进入待审核复核；累计判退 {{ fbHard }} 次：下载前直接拦截。
         误判可逐条删除；手工填写的主题词不会被自动屏蔽。
+      </p>
+      <p class="small" :class="fbShadow ? 'ok' : 'muted'">
+        {{ fbShadow
+          ? '当前为「影子模式」：学到的回避词只影响排序与送审核，不会自动拦截下载。需自动拦截请到「设置 → AI 与主题词」关闭影子模式。'
+          : '当前为「自动拦截」：判退累计达标后会在下载前直接拦截。' }}
       </p>
       <div class="tw">
         <div class="tr fbrow fbth"><span>词</span><span>判退次数</span><span>当前处置</span><span></span></div>

@@ -240,8 +240,10 @@ def _filter_rows(db, opt: dict) -> tuple[list, dict]:
         where += " AND tags LIKE ?"
         args.append("%" + tag + "%")
     args.append(limit)
+    # V0.0.56：补 collected_at —— 清单里要能追溯"什么时候采的"（任务书交付要求）。
+    # site 从 source_url 现算，不额外存列（老库无迁移成本）。
     rows = db.query(
-        "SELECT id, task_id, path, tags, score, source_url FROM images "
+        "SELECT id, task_id, path, tags, score, source_url, collected_at FROM images "
         f"WHERE {where} ORDER BY score DESC, id DESC LIMIT ?", tuple(args))
     norm = {"min_score": min_score, "limit": limit, "task_id": task_id,
             "tag": tag, "only_favorite": only_fav,
@@ -461,6 +463,20 @@ def export_training_kit(db, cfg, dest, options: dict | None = None) -> dict:
             captions += 1
         except OSError:
             cap = None
+        # V0.0.56：清单补来源可追溯字段（任务书交付要求）——来源 URL、站点、
+        # 采集时间。缺失列时按 sqlite3.Row 取值兜底，绝不让导出因一列缺失中断。
+        def _cell(key, default=""):
+            try:
+                return r[key] if key in r.keys() else default
+            except Exception:
+                return default
+
+        _src_url = str(_cell("source_url") or "")
+        try:
+            from urllib.parse import urlparse
+            _site = urlparse(_src_url).netloc or ""
+        except Exception:
+            _site = ""
         manifest.append({
             "image": dst.name,
             "caption": cap.name if cap else "",
@@ -468,16 +484,22 @@ def export_training_kit(db, cfg, dest, options: dict | None = None) -> dict:
             "score": round(float(r["score"] or 0), 4),
             "task_id": tid,
             "task": task_names.get(tid, ""),
+            "source_url": _src_url,
+            "site": _site,
+            "collected_at": str(_cell("collected_at") or ""),
         })
 
     # 清单只记文件名与目标词，不写原图绝对路径（图库索引另有加密导出）。
     index_path = _unique_path(dest_path, "素材清单.csv", used.setdefault(dest_path, set()))
     buf = io.StringIO(newline="")
     w = csv.writer(buf)
-    w.writerow(["文件名", "标注文件", "目标词", "AI 评分", "任务编号", "任务名称"])
+    w.writerow(["文件名", "标注文件", "目标词", "AI 评分", "任务编号", "任务名称",
+                "来源网址", "站点", "采集时间"])
     for m in manifest:
         w.writerow([m["image"], m["caption"], ", ".join(m["target_terms"]),
-                    m["score"], m["task_id"], m["task"]])
+                    m["score"], m["task_id"], m["task"],
+                    m.get("source_url", ""), m.get("site", ""),
+                    m.get("collected_at", "")])
     try:
         index_path.write_text("\ufeff" + buf.getvalue(), encoding="utf-8")
     except OSError:

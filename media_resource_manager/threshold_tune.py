@@ -74,6 +74,50 @@ def _rates(pos: list[float], neg: list[float], t: float) -> tuple[float, float]:
     return keep, leak
 
 
+def _confusion(pos: list[float], neg: list[float], t: float) -> dict:
+    """阈值 t 下的混淆矩阵四格。
+
+    "合格"定义为分 ≥ t。正样本(收藏)判合格=TP，判不合格=FN(漏杀好图)；
+    负样本(判退)判合格=FP(放进坏图)，判不合格=TN。
+    """
+    tp = sum(1 for x in pos if x >= t)
+    fn = len(pos) - tp
+    fp = sum(1 for x in neg if x >= t)
+    tn = len(neg) - fp
+    return {"tp": tp, "fn": fn, "fp": fp, "tn": tn}
+
+
+def _mistakes(db, t: float, limit: int = 5) -> dict:
+    """在建议阈值下会被误判的样例（各取几张，供人工核对阈值是否合理）。
+
+    - false_negative：本该留住的收藏图却落在线下（高分门槛误伤）；
+    - false_positive：本该拦掉的判退图却过了线（漏放）。
+    只回 id/分数/标签，前端只读展示，绝不写库。老库缺列时安静降级。
+    """
+    out = {"false_negative": [], "false_positive": []}
+    try:
+        base = ("SELECT id, score, tags FROM images WHERE score IS NOT NULL "
+                "AND path IS NOT NULL")
+        for key, extra, order in (
+            ("false_negative",
+             "AND favorite=1 AND blacklisted=0 AND in_quarantine=0 "
+             "AND needs_review=0 AND score<?", "score ASC"),
+            ("false_positive",
+             "AND (blacklisted=1 OR (in_quarantine=1 AND needs_review=0)) "
+             "AND score>=?", "score DESC"),
+        ):
+            for r in db.query(f"{base} {extra} ORDER BY {order} LIMIT ?",
+                              (float(t), int(limit))):
+                out[key].append({
+                    "id": int(r["id"]),
+                    "score": round(float(r["score"] or 0), 3),
+                    "tags": str(r["tags"] or "")[:120],
+                })
+    except Exception:
+        pass
+    return out
+
+
 def _best_threshold(pos: list[float], neg: list[float], current: float) -> tuple[float, float]:
     """扫描候选阈值，返回 (最佳阈值, 最佳区分度)。区分度 = 留住比例 − 放进比例。"""
     cand = sorted({round(float(x), 4) for x in (pos + neg)
@@ -161,6 +205,10 @@ def suggest(db, current: float = 0.35) -> dict:
         "pos_p10": round(p10, 3), "neg_p90": round(n90, 3),
         "keep_rate": round(keep_rate, 3),
         "leak_rate": round(leak_rate, 3),
+        # V0.0.56：混淆矩阵四格 + 误判样例（任务书"显示混淆矩阵与误判样例"）。
+        # 均按建议阈值算，前端据此画 2×2 表、列出被误伤/漏放的图。
+        "confusion": _confusion(pos, neg, best),
+        "mistakes": _mistakes(db, best),
         "keep": keep, "drop": drop,
         "note": (
             f"依据 {len(pos)} 张收藏图与 {len(neg)} 张判退图，建议合格线 "

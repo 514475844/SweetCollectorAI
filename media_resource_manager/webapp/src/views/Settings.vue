@@ -1404,6 +1404,16 @@ onUnmounted(() => {
             <Icon name="eraser" :size="13" />清空学习记录</button>
         </div>
       </div>
+      <!-- V0.0.56：影子模式。feedback_auto_harden 默认 false = 影子（只排序/送审核，
+           不自动拦截）。这里用「自动拦截」正向开关绑同一字段，避免取反造成语义错位。 -->
+      <div class="row">
+        <label>回避词自动拦截</label>
+        <div class="inline">
+          <input type="checkbox" id="f-auto-harden" :checked="!!form.feedback_auto_harden"
+                 @change="onField({ k: 'feedback_auto_harden', type: 'bool' }, $event)" />
+          <span class="muted">默认关闭＝影子模式：判退学到的词只影响排序与送审核，不自动拦截下载（推荐）。勾选后恢复「累计判退达标自动硬拦」。</span>
+        </div>
+      </div>
     </section>
 
     <!-- 在线模型：从接口拉清单直接选（#5）-->

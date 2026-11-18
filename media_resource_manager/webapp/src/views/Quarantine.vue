@@ -12,6 +12,26 @@ import Icon from '../components/Icon.vue'
 const busy = ref(false)
 const err = ref('')
 const info = ref('')
+const keepDays = ref(30)   // V0.0.56：按保留期清理的默认天数
+
+async function pruneByDays() {
+  const d = Math.max(1, Math.round(Number(keepDays.value) || 30))
+  const ok = confirm(
+    `即将物理删除隔离超过 ${d} 天、且未收藏未拉黑未待审的图片文件，操作不可撤销。\n\n` +
+    '此处清理的是软件内隔离区，与 Windows 系统回收站无关。请确认继续。')
+  if (!ok) return
+  busy.value = true
+  try {
+    const r = await api.siteQuarantinePrune(d)
+    if (!r.ok) throw new Error(r.error || '清理未完成')
+    info.value = r.note || '隔离区已按保留期清理'
+    err.value = ''
+  } catch (e) {
+    err.value = e.message || '按保留期清理失败'
+  } finally {
+    busy.value = false
+  }
+}
 
 async function pruneAll() {
   const ok = confirm(
@@ -43,10 +63,19 @@ async function pruneAll() {
       </span>
     </p>
     <div class="card bar">
-      <span class="muted small">确认确认不再保留，可一次性清空隔离区并释放磁盘空间。</span>
-      <button class="btn sm danger" :disabled="busy" @click="pruneAll">
-        <Icon name="trash" :size="13" />清空隔离区
-      </button>
+      <span class="muted small">隔离区不会自动膨胀。可只清超过保留期的旧图，或一次性清空。</span>
+      <div class="inline">
+        <label class="muted small">保留</label>
+        <input type="number" min="1" max="3650" v-model.number="keepDays"
+               style="width:70px" :disabled="busy" />
+        <span class="muted small">天</span>
+        <button class="btn sm" :disabled="busy" @click="pruneByDays">
+          <Icon name="clock" :size="13" />清理超期图
+        </button>
+        <button class="btn sm danger" :disabled="busy" @click="pruneAll">
+          <Icon name="trash" :size="13" />全部清空
+        </button>
+      </div>
     </div>
     <p v-if="err" class="err">{{ err }}</p>
     <p v-if="info" class="goodbar">{{ info }}</p>

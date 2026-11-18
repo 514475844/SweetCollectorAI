@@ -621,6 +621,12 @@ class Database:
                 "clip_model": "TEXT DEFAULT ''",
             },
             # #37/D3：权重明细要「主题词命中 / 排除词命中」两列
+            # V0.0.56：审核类别原因（"主题不符/低质/重复/水印/来源不想要/稍后再看"）。
+            # 词级原因走 feedback 账本，类别标签落这里，供偏好统计与审计回看。
+            # 列存在即兼容，老库补列默认空串，不影响已有审核记录。
+            "reviews": {
+                "reason_cat": "TEXT DEFAULT ''",
+            },
             "preferences": {
                 "hit_pos": "INTEGER DEFAULT 0",
                 "hit_neg": "INTEGER DEFAULT 0",

@@ -5072,6 +5072,11 @@ class _Handler(BaseHTTPRequestHandler):
                   if str(w).strip()][:50]
         correct = [str(w).strip() for w in (body.get("correct") or [])
                    if str(w).strip()][:50]
+        # V0.0.56：审核类别原因（"主题不符/低质/重复/水印/来源不想要/稍后再看"）。
+        # 与词级原因分开存：词级进 feedback 账本（喂"别找什么"），类别进
+        # reviews.reason_cat（审计与统计"为什么判退"）。只在 dislike 系动作落库。
+        reason_cat = [str(w).strip() for w in (body.get("reason_cat") or [])
+                      if str(w).strip()][:6]
         done = 0
         tids = set()
         # V0.0.8：判退动作学到的「别找」词汇总（次数 + 升级为下载前拦截的词），
@@ -5166,9 +5171,18 @@ class _Handler(BaseHTTPRequestHandler):
                 if row[0]["task_id"] is not None:
                     tids.add(int(row[0]["task_id"]))
                 was_q = int(row[0]["in_quarantine"] or 0) == 1
-                self.db.execute(
-                    "INSERT INTO reviews(image_id,decision,task_id) "
-                    "VALUES (?,?,?)", (iid, dec, row[0]["task_id"]))
+                # V0.0.56：类别原因落 reviews.reason_cat（列可能不存在于老库，
+                # 迁移已补；这里仍用 try 兜底，绝不让记账拖垮删图主流程）。
+                _reason_cat_s = ",".join(reason_cat) if dec == "dislike" else ""
+                try:
+                    self.db.execute(
+                        "INSERT INTO reviews(image_id,decision,task_id,reason_cat) "
+                        "VALUES (?,?,?,?)",
+                        (iid, dec, row[0]["task_id"], _reason_cat_s))
+                except Exception:
+                    self.db.execute(
+                        "INSERT INTO reviews(image_id,decision,task_id) "
+                        "VALUES (?,?,?)", (iid, dec, row[0]["task_id"]))
                 if act == "delete":
                     if was_q:
                         # R164-Bug1：隔离区内删除 = 真删除（删文件 + 记录，
@@ -6773,9 +6787,14 @@ class _Handler(BaseHTTPRequestHandler):
         try:
             from . import feedback as fb
             return {"ok": True, "items": fb.list_all(self.db),
-                    "hard_hits": fb.HARD_HITS}
+                    "hard_hits": fb.HARD_HITS,
+                    # V0.0.56：影子模式状态给前端显示。默认 True=学到的词只
+                    # 送审核不硬拦；用户可在设置里关掉恢复自动硬拦。
+                    "shadow": not bool(getattr(
+                        self.cfg, "feedback_auto_harden", False))}
         except Exception as e:
-            return {"ok": False, "error": str(e), "items": [], "hard_hits": 2}
+            return {"ok": False, "error": str(e), "items": [],
+                    "hard_hits": 2, "shadow": True}
 
     def _api_feedback_remove(self, body):
         try:
@@ -8883,7 +8902,10 @@ class _Handler(BaseHTTPRequestHandler):
         if not self._confirmed(body):
             return {"ok": False, "error": "请先确认清空隔离区。"}
         try:
-            res = so.prune_quarantine(self.db)
+            # V0.0.56：可选 keep_days —— 传了就只清"隔离超过 N 天"的图；
+            # 不传 = 全清（原行为）。天数校验在 site_ops.prune_quarantine 内。
+            keep = (body or {}).get("keep_days", 0)
+            res = so.prune_quarantine(self.db, keep_days=keep)
         except Exception as e:
             return {"ok": False, "error": f"清空隔离区失败：{e}"}
         if res.get("ok") and res.get("deleted"):
@@ -9407,7 +9429,7 @@ class _Handler(BaseHTTPRequestHandler):
         "ai_gpu", "ai_device",
         # 2026-10-27 设置页扩充（Web 对标桌面）：这些都是"改了不用重启"的项
         "ai_threads", "convert_to_jpg", "rate_plan_enabled",
-        "learn_enabled", "blur_sensitive", "review_key_ask",
+        "learn_enabled", "feedback_auto_harden", "blur_sensitive", "review_key_ask",
         "task_done_goto_gallery",
         # #10/#11：失败自动重试 + 自动降频
         "auto_retry", "auto_retry_delay", "auto_slowdown",

@@ -147,8 +147,9 @@ export const api = {
   siteLogsClear: () => req('/api/site/logs/clear', {
     method: 'POST', body: { confirm: true },
   }),
-  siteQuarantinePrune: () => req('/api/site/quarantine/prune', {
-    method: 'POST', body: { confirm: true },
+  // V0.0.56：keep_days>0 只清"隔离超过 N 天"的图；不传 = 全清。
+  siteQuarantinePrune: (keepDays) => req('/api/site/quarantine/prune', {
+    method: 'POST', body: { confirm: true, keep_days: Number(keepDays) || 0 },
   }),
   siteCleanup: (plan) => req('/api/site/cleanup', {
     method: 'POST', body: { confirm: true, plan }, timeout: 180000,

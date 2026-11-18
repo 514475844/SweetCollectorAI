@@ -275,6 +275,13 @@ def collect(db, task, cfg=None) -> FindTerms:
     # 优先级最高，不该被模型一次误标反复拉去审核。
     fb_hard = [w for w in fb_hard if w.lower() not in _typed_keys]
     fb_soft = [w for w in fb_soft if w.lower() not in _typed_keys]
+    # V0.0.56 影子模式：默认关掉「自动硬拦」——判退多次学到的词也只降级成
+    # 观察词（送审核），不进下载前硬拦。只有用户在设置里显式打开
+    # feedback_auto_harden=True 才恢复旧行为（判退≥2 次自动硬拦）。
+    # 手填的 ai_blacklist / global_blacklist 不受影响，照常硬拦（那是明确意图）。
+    if not bool(getattr(cfg, "feedback_auto_harden", False)):
+        fb_soft = list(dict.fromkeys(fb_soft + fb_hard))
+        fb_hard = []
     avoid.extend(fb_hard)
     avoid = _clean(avoid)
     # 同一个词既在「要找」又在「别找」时，以「别找」为准（用户明确拉黑优先）
