@@ -93,6 +93,8 @@ onUnmounted(() => {
 </script>
 
 <template>
+<!-- V0.0.58：挂到 body，避免 fixed 遮罩被 .page/过渡的 transform 困住盖不住顶栏标题 -->
+    <Teleport to="body">
   <div v-if="visible" class="mask">
     <div class="wiz card">
       <div class="head">
@@ -127,6 +129,7 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>

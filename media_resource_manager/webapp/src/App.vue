@@ -839,12 +839,15 @@ onUnmounted(() => {
         </button>
       </div>
     </footer>
+<!-- V0.0.58：挂到 body，避免 fixed 遮罩被 .page/过渡的 transform 困住盖不住顶栏标题 -->
+      <Teleport to="body">
     <div v-if="quitting" class="quit-mask">
       <div class="quit-card">
         <Icon name="log-out" :size="18" />
         <span>正在退出…</span>
       </div>
     </div>
+    </Teleport>
   </div>
 
   <!-- V0.0.17：全局弹窗（登录后才挂载，避免登录页先弹出引导） -->

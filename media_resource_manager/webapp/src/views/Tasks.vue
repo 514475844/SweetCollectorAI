@@ -946,6 +946,8 @@ onUnmounted(() => {
                   @close="pickerOpen = false" @picked="onPickedDir" />
 
     <!-- 失败网址 -->
+    <!-- V0.0.58：弹窗必须挂到 body —— dlg 过渡给 .modal 加 transform，就地渲染会让 fixed 遮罩以 .page 为包含块，盖不住 sticky 顶栏，顶栏标题透出高亮（灯箱同类 bug）。 -->
+    <Teleport to="body">
     <Transition name="dlg">
     <div v-if="failed" class="mask" @click.self="failed = null">
       <div class="modal card">
@@ -969,8 +971,11 @@ onUnmounted(() => {
       </div>
     </div>
     </Transition>
+    </Teleport>
 
     <!-- V0.0.27：删除任务（可选「同时删除图片」） -->
+    <!-- V0.0.58：弹窗必须挂到 body —— dlg 过渡给 .modal 加 transform，就地渲染会让 fixed 遮罩以 .page 为包含块，盖不住 sticky 顶栏，顶栏标题透出高亮（灯箱同类 bug）。 -->
+    <Teleport to="body">
     <Transition name="dlg">
     <div v-if="delDlg" class="mask" @click.self="delDlg.busy ? null : (delDlg = null)">
       <div class="modal card deldlg">
@@ -999,8 +1004,11 @@ onUnmounted(() => {
       </div>
     </div>
     </Transition>
+    </Teleport>
 
     <!-- 模板 -->
+    <!-- V0.0.58：弹窗必须挂到 body —— dlg 过渡给 .modal 加 transform，就地渲染会让 fixed 遮罩以 .page 为包含块，盖不住 sticky 顶栏，顶栏标题透出高亮（灯箱同类 bug）。 -->
+    <Teleport to="body">
     <Transition name="dlg">
     <div v-if="tplOpen" class="mask" @click.self="tplOpen = false">
       <div class="modal card">
@@ -1022,9 +1030,12 @@ onUnmounted(() => {
       </div>
     </div>
     </Transition>
+    </Teleport>
 
     <!-- 编辑 / 新建 -->
     <!-- 快速添加：一行一个网址，用默认配置建任务 -->
+    <!-- V0.0.58：弹窗必须挂到 body —— dlg 过渡给 .modal 加 transform，就地渲染会让 fixed 遮罩以 .page 为包含块，盖不住 sticky 顶栏，顶栏标题透出高亮（灯箱同类 bug）。 -->
+    <Teleport to="body">
     <Transition name="dlg">
     <div v-if="quick" class="mask" @click.self="quick = null">
       <div class="modal card">
@@ -1058,7 +1069,10 @@ onUnmounted(() => {
       </div>
     </div>
     </Transition>
+    </Teleport>
 
+    <!-- V0.0.58：弹窗必须挂到 body —— dlg 过渡给 .modal 加 transform，就地渲染会让 fixed 遮罩以 .page 为包含块，盖不住 sticky 顶栏，顶栏标题透出高亮（灯箱同类 bug）。 -->
+    <Teleport to="body">
     <Transition name="dlg">
     <div v-if="dlg" class="mask" @click.self="dlg = null">
       <div class="modal card task-form" :class="{ newbie: uiMode === 'newbie', 'adv-open': advOpen }">
@@ -1195,6 +1209,7 @@ onUnmounted(() => {
       </div>
     </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 

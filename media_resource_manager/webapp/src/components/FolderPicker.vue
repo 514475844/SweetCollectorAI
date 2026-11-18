@@ -59,6 +59,8 @@ watch(() => props.open, (v) => {
 </script>
 
 <template>
+<!-- V0.0.58：挂到 body，避免 fixed 遮罩被 .page/过渡的 transform 困住盖不住顶栏标题 -->
+    <Teleport to="body">
   <div v-if="open" class="fp-mask" @click.self="$emit('close')">
     <div class="fp card">
       <div class="fp-hd">
@@ -111,6 +113,7 @@ watch(() => props.open, (v) => {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
