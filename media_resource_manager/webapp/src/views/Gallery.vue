@@ -2,12 +2,16 @@
 // 图库（2026-10-28：原来的「隔离区」页签已拆成左边独立一项，见 Quarantine.vue）。
 // V0.0.26：「导入本地文件夹」迁到「导入与导出」页（用户要求进口出口放一起），
 // 这里只留一句指引，免得同一功能两个入口、两套说法。
+// V0.0.61：AI 识别是对**已入库图片**做的，卡片挪到图库页（图片实际所在处），
+// 导入页只留入库相关，识别卡不再跟导入混在一起。
 import ImageGrid from '../components/ImageGrid.vue'
 import Icon from '../components/Icon.vue'
+import TagCard from '../components/TagCard.vue'
 </script>
 
 <template>
   <div class="page">
+    <TagCard />
     <p class="impnote muted small">
       <Icon name="folder-open" :size="13" />
       <span>要把本机文件夹里的图片收进图库，请到

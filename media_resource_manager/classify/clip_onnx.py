@@ -140,6 +140,12 @@ class ClipONNX:
         self._text_cache: dict = {}
         self._text_lock = threading.Lock()
         self._text_pixel_batch1 = True
+        # V0.0.61：会话推理互斥锁。onnxruntime-directml 的 InferenceSession
+        # **不是线程安全的** —— 多个 worker 并发对同一个共享会话调用
+        # sess.run() 会让 DirectML 原生层直接访问违规（0xc0000005），
+        # 整个进程被杀死（实测：5 并发必崩，闪退）。CPU 后端虽然线程安全，
+        # 但统一加锁对两者都安全。所有 sess.run() 必须持此锁串行执行。
+        self._run_lock = threading.Lock()
 
     @staticmethod
     def _pick_providers(ort, gpu: bool = True,
@@ -228,7 +234,8 @@ class ClipONNX:
             bs = 1 if self._text_pixel_batch1 else len(texts)
             feeds["pixel_values"] = np.zeros((bs, 3, 224, 224), dtype=np.float32)
         try:
-            out = self.sess.run(None, feeds)
+            with self._run_lock:
+                out = self.sess.run(None, feeds)
         except Exception:
             if not self._text_pixel_batch1:
                 raise
@@ -236,7 +243,8 @@ class ClipONNX:
             self._text_pixel_batch1 = False
             feeds["pixel_values"] = np.zeros((len(texts), 3, 224, 224),
                                              dtype=np.float32)
-            out = self.sess.run(None, feeds)
+            with self._run_lock:
+                out = self.sess.run(None, feeds)
         emb = dict(zip(self.output_names, out))["text_embeds"]
         emb = emb / np.linalg.norm(emb, axis=-1, keepdims=True)
         with self._text_lock:
@@ -250,7 +258,8 @@ class ClipONNX:
         if "input_ids" in self.input_names:
             feeds["input_ids"] = np.zeros((1, 77), dtype=np.int64)
             feeds["attention_mask"] = np.zeros((1, 77), dtype=np.int64)
-        out = self.sess.run(None, feeds)
+        with self._run_lock:
+            out = self.sess.run(None, feeds)
         emb = dict(zip(self.output_names, out))["image_embeds"]
         return emb / np.linalg.norm(emb, axis=-1, keepdims=True)
 

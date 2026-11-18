@@ -139,6 +139,11 @@ class LocalClassifier:
         # 现在把「为什么回退、退到了哪」记在 model_note 上，调用方（任务备注 /
         # 从文件夹学习的结果）会把它带给用户，同时写一条 WARNING 日志。
         self.model_note = ""
+        # V0.0.61：onnx 回退会话的推理互斥锁。onnxruntime 的会话（尤其
+        # DirectML/CUDA 后端）不是线程安全的 —— 多 worker 并发跑
+        # sess.run() 会原生访问违规（0xc0000005）闪退进程。_classify_onnx
+        # 直接持有会话，必须串行。
+        self._onnx_run_lock = threading.Lock()
         self._pick_backend()
 
     # -------- backend selection --------
@@ -374,7 +379,8 @@ class LocalClassifier:
             return []
         arr = np.asarray(pil.convert("RGB").resize((224, 224))).astype("float32") / 255.0
         arr = np.transpose(arr, (2, 0, 1))[None]
-        out = self._session.run(None, {"input": arr})[0][0]
+        with self._onnx_run_lock:
+            out = self._session.run(None, {"input": arr})[0][0]
         scores = out.tolist() if hasattr(out, "tolist") else list(out)
         pairs = sorted(zip(self.labels or [str(i) for i in range(len(scores))],
                            scores), key=lambda x: -x[1])
