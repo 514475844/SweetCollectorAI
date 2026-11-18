@@ -133,7 +133,7 @@ def test_desktop_dialog_is_fixed():
     assert "学习已关闭" not in seg, "学习开关还在拦「导入自己的图库」"
     assert "self.cfg.last_output_dir = d" not in seg, "下载输出目录又被写成原图库了"
     assert "last_learn_dir" in seg
-    assert "只入库、先不打标签" in seg, "桌面缺网页端那个勾"
+    assert "只入库、先不识别" in seg, "桌面缺网页端那个勾"
     assert "do_tag=_do_tag" in seg
 
 
@@ -147,7 +147,7 @@ def test_import_index_only_label_identical_on_both_ends():
     web = (Path(main_window.__file__).parents[1]
            / "webapp/src/components/ImportFolder.vue")
     desktop = Path(main_window.__file__).read_text(encoding="utf-8")
-    label = "只入库、先不打标签"
+    label = "只入库、先不识别"
     assert label in desktop and label in web.read_text(encoding="utf-8")
 
 

@@ -368,6 +368,9 @@ def _job_finish(jid: str, result=None, error: str = "", message: str = "") -> No
 # 不是杀进程 —— 已入库的保留、已打标的保留。
 _IMPORT_LOCK = threading.Lock()
 _IMPORT_STATE: dict = {"job": "", "cancel": None}
+# V0.0.60：AI 识别作业独立于导入 —— 可以有自己的进度条、自己的停止键，
+# 也能和导入同时跑（边入库边识别）。与 _IMPORT_STATE 分开，各管各的。
+_TAG_STATE: dict = {"job": "", "cancel": None}
 # V0.0.46：语义特征补算作业（独立于导入，但同样「一次只跑一个」）
 _SEM_BACKFILL: dict = {"job": "", "cancel": None}
 
@@ -2238,6 +2241,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(self._api_fs_list(u))
             if path == "/api/import/job":
                 return self._json(self._api_import_job(u))
+            # V0.0.60：AI 识别独立作业 —— 状态 / 待识别数（前端单独一条进度条）
+            if path == "/api/import/tag-job":
+                return self._json(self._api_tag_job(u))
+            if path == "/api/import/tag-pending":
+                return self._json(self._api_tag_pending())
             # V0.0.44：断点续导 —— 「上次导到哪儿了、还剩多少张没打标」
             if path == "/api/import/last":
                 return self._json(self._api_import_last())
@@ -2686,6 +2694,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(self._api_import_folder(self._body()))
             if path == "/api/import/cancel":
                 return self._json(self._api_import_cancel())
+            # V0.0.60：AI 识别独立作业 —— 随时启动 / 停止（不影响导入）
+            if path == "/api/import/tag-start":
+                return self._json(self._api_tag_start(self._body()))
+            if path == "/api/import/tag-cancel":
+                return self._json(self._api_tag_cancel())
             # V0.0.44：从 WebDAV 目录导入（NAS / 网盘的 WebDAV 入口）
             if path == "/api/import/webdav":
                 return self._json(self._api_import_webdav(self._body()))
@@ -7208,7 +7221,7 @@ class _Handler(BaseHTTPRequestHandler):
         cfg, db = self.cfg, self.db
 
         def _cb(phase, done, total, name, eta, pct):
-            label = "正在索引" if phase == "index" else "正在打标"
+            label = "正在入库" if phase == "index" else "正在 AI 识别"
             msg = f"{label} {done:,} / {total:,}"
             if phase == "index" and name:
                 msg += f" · {name[:36]}"
@@ -7232,8 +7245,12 @@ class _Handler(BaseHTTPRequestHandler):
                     pass
 
             try:
+                # V0.0.60：导入只管入库；AI 识别是独立作业（同时跑、单独进度、
+                # 单独停止）。识别作业在下面线程启动时一并拉起，捞不到行会等
+                # 导入产出新行，所以先起也没关系。
                 res = imp.import_folder(db, cfg, folder, force=force,
-                                        do_tag=do_tag, stop=evt.is_set,
+                                        do_tag=False, mark_pending=True,
+                                        stop=evt.is_set,
                                         copy_to_library=copy_to_library,
                                         recursive=recursive,
                                         progress=_cb)
@@ -7242,7 +7259,7 @@ class _Handler(BaseHTTPRequestHandler):
                     _job_finish(jid, error=str(res.get("error") or "导入失败"))
                     return
                 _counts = (f"入库 {int(res.get('indexed') or 0):,} 张"
-                           f" · 打标 {int(res.get('tagged') or 0):,} 张"
+                           f" · 已识别 {int(res.get('tagged') or 0):,} 张"
                            f" · 跳过重复 {int(res.get('skipped_dup') or 0):,} 张")
                 if res.get("stopped"):
                     _notice("导入已停止", _counts + "；可再次导入接着打")
@@ -7260,8 +7277,10 @@ class _Handler(BaseHTTPRequestHandler):
                         _IMPORT_STATE["job"] = ""
                         _IMPORT_STATE["cancel"] = None
 
+        # V0.0.60：勾了「同时识别」就一并起独立识别作业（各管各的进度/停止）
+        tag_jid = self._start_tag_job() if do_tag else ""
         threading.Thread(target=_run, daemon=True, name="mrm-import").start()
-        return {"ok": True, "job": jid}
+        return {"ok": True, "job": jid, "tag_job": tag_jid}
 
     def _api_import_job(self, u):
         """GET /api/import/job?id= → 进度快照（前端每 1–2 秒轮询）。"""
@@ -7285,6 +7304,92 @@ class _Handler(BaseHTTPRequestHandler):
         evt.set()
         return {"ok": True, "message":
                 "已请求停止：已入库的图片保留，下次导入同一文件夹会从剩下的继续"}
+
+    # ── V0.0.60：AI 识别独立作业（与导入各管各的）────────────────────
+    def _start_tag_job(self, task_id=None):
+        """内部复用：起一个独立识别作业，返回 job id（已有一个在跑则返回空串）。"""
+        from . import tag_job
+        if tag_job.is_tagging():
+            return ""
+        with _IMPORT_LOCK:
+            if _TAG_STATE.get("job"):
+                return ""  # 已有一个识别作业（状态还没清）
+        jid = _job_new("tag")
+        evt = threading.Event()
+        with _IMPORT_LOCK:
+            _TAG_STATE["job"] = jid
+            _TAG_STATE["cancel"] = evt
+        cfg, db = self.cfg, self.db
+
+        def _cb(phase, done, total, name, eta, pct):
+            _jobs_mod.update(jid, pct=max(0, min(100, int(pct))),
+                             message=f"正在 AI 识别 {done:,} / {total:,}",
+                             phase="tag", done=done, total=total,
+                             eta=eta or "", name=str(name or "")[:120])
+
+        def _run():
+            try:
+                import_running = lambda: bool(_IMPORT_STATE.get("job"))
+                res = tag_job.start_tagging(
+                    db, cfg, task_id=task_id, stop=evt.is_set, progress=_cb,
+                    import_running=import_running, wait_idle_rounds=3)
+                if not res.get("ok"):
+                    _job_finish(jid, error=str(res.get("error") or "识别失败"))
+                else:
+                    msg = ("已停止（已识别的保留，可再次启动接着识别）"
+                           if res.get("stopped") else "AI 识别完成")
+                    _job_finish(jid, result=res, message=msg)
+            except Exception as e:              # noqa: BLE001 —— 作业线程兜底
+                _job_finish(jid, error=f"{type(e).__name__}: {e}")
+            finally:
+                with _IMPORT_LOCK:
+                    if _TAG_STATE.get("job") == jid:
+                        _TAG_STATE["job"] = ""
+                        _TAG_STATE["cancel"] = None
+
+        threading.Thread(target=_run, daemon=True, name="mrm-tag").start()
+        return jid
+
+    def _api_tag_start(self, body):
+        """POST /api/import/tag-start {task_id?} → 起独立识别作业。"""
+        task_id = (body or {}).get("task_id")
+        try:
+            task_id = int(task_id) if task_id not in (None, "", 0) else None
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "任务编号无效"}
+        jid = self._start_tag_job(task_id=task_id)
+        if not jid:
+            return {"ok": False, "error": "已有 AI 识别作业在跑"}
+        return {"ok": True, "job": jid}
+
+    def _api_tag_job(self, u):
+        """GET /api/import/tag-job?id= → 识别作业进度快照。"""
+        jid = str((parse_qs(u.query).get("id") or [""])[0]).strip()
+        rec = _job_get(jid) if jid else None
+        if rec is None:
+            return {"ok": False, "error": "识别作业不存在或已过期（软件重启后失效）"}
+        from . import tag_job as _tj
+        out = dict(rec)
+        out["ok"] = True
+        out["running"] = _tj.is_tagging()
+        return out
+
+    def _api_tag_cancel(self):
+        """POST /api/import/tag-cancel → 优雅停止识别（不影响导入）。"""
+        with _IMPORT_LOCK:
+            evt = _TAG_STATE.get("cancel")
+        if evt is None:
+            return {"ok": False, "error": "当前没有正在跑的识别作业"}
+        evt.set()
+        return {"ok": True, "message": "已请求停止识别：已识别的保留，可随时再次启动"}
+
+    def _api_tag_pending(self):
+        """GET /api/import/tag-pending → 全库待识别张数（前端显示用）。"""
+        try:
+            from .tag_job import count_pending
+            return {"ok": True, "pending": count_pending(self.db)}
+        except Exception as e:                    # noqa: BLE001
+            return {"ok": False, "error": str(e)}
 
     def _api_import_last(self):
         """GET /api/import/last → 上次导入到哪儿了（断点续导入口）。
@@ -7474,7 +7579,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         def _cb(phase, done, total, name, eta, pct):
             label = {"list": "正在列目录", "download": "正在下载",
-                     "index": "正在索引", "tag": "正在打标"}.get(phase, "正在处理")
+                     "index": "正在入库", "tag": "正在 AI 识别"}.get(phase, "正在处理")
             msg = f"{label} {done:,} / {total:,}"
             if name and phase != "index":
                 msg += f" · {name[:36]}"
@@ -7496,9 +7601,10 @@ class _Handler(BaseHTTPRequestHandler):
                     pass
 
             try:
+                # V0.0.60：导入只管入库，AI 识别另起独立作业（各管各的进度/停止）
                 res = wd.import_webdav(
                     db, cfg, url, user=user, password=password,
-                    recursive=recursive, do_tag=do_tag,
+                    recursive=recursive, do_tag=False, mark_pending=True,
                     copy_to_library=copy_to_library,
                     stop=evt.is_set, progress=_cb)
                 if not res.get("ok"):
@@ -7507,7 +7613,7 @@ class _Handler(BaseHTTPRequestHandler):
                     return
                 _counts = (f"下载 {int(res.get('downloaded') or 0):,} 张"
                            f" · 入库 {int(res.get('indexed') or 0):,} 张"
-                           f" · 打标 {int(res.get('tagged') or 0):,} 张")
+                           f" · 已识别 {int(res.get('tagged') or 0):,} 张")
                 if res.get("stopped"):
                     _notice("WebDAV 导入已停止", _counts + "；可再次导入接着来")
                     _job_finish(jid, result=res, message="已停止（可再次导入接着来）")
@@ -7523,8 +7629,9 @@ class _Handler(BaseHTTPRequestHandler):
                         _IMPORT_STATE["job"] = ""
                         _IMPORT_STATE["cancel"] = None
 
+        tag_jid = self._start_tag_job() if do_tag else ""
         threading.Thread(target=_run, daemon=True, name="mrm-import-webdav").start()
-        return {"ok": True, "job": jid}
+        return {"ok": True, "job": jid, "tag_job": tag_jid}
 
     def _api_import_remote(self, body):
         """POST /api/import/remote {protocol,host,port,user,password,path,tag,copy,recursive}
@@ -7561,7 +7668,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         def _cb(phase, done, total, name, eta, pct):
             label = {"list": "正在列目录", "download": "正在下载",
-                     "index": "正在索引", "tag": "正在打标"}.get(phase, "正在处理")
+                     "index": "正在入库", "tag": "正在 AI 识别"}.get(phase, "正在处理")
             msg = f"{label} {done:,} / {total:,}"
             if name:
                 msg += f" · {str(name)[:36]}"
@@ -7580,10 +7687,11 @@ class _Handler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             try:
+                # V0.0.60：导入只管入库，AI 识别另起独立作业（各管各的进度/停止）
                 res = ri.import_remote(
                     db, cfg, protocol, host, port=port, user=user,
                     password=password, remote_path=remote_path,
-                    recursive=recursive, do_tag=do_tag,
+                    recursive=recursive, do_tag=False, mark_pending=True,
                     copy_to_library=copy_to_library, stop=evt.is_set,
                     progress=_cb)
                 if not res.get("ok"):
@@ -7592,7 +7700,7 @@ class _Handler(BaseHTTPRequestHandler):
                     _job_finish(jid, error=str(res.get("error") or "导入失败"))
                     return
                 _counts = (f"入库 {int(res.get('indexed') or 0):,} 张"
-                           f" · 打标 {int(res.get('tagged') or 0):,} 张")
+                           f" · 已识别 {int(res.get('tagged') or 0):,} 张")
                 if res.get("stopped"):
                     _notice(f"{protocol.upper()} 导入已停止",
                             _counts + "；可再次导入接着来")
@@ -7609,8 +7717,9 @@ class _Handler(BaseHTTPRequestHandler):
                         _IMPORT_STATE["job"] = ""
                         _IMPORT_STATE["cancel"] = None
 
+        tag_jid = self._start_tag_job() if do_tag else ""
         threading.Thread(target=_run, daemon=True, name="mrm-import-remote").start()
-        return {"ok": True, "job": jid}
+        return {"ok": True, "job": jid, "tag_job": tag_jid}
 
     # ───────────────── R251 · 站点 Cookie（按域名存档） ─────────────────
     #

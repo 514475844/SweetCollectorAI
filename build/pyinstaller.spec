@@ -20,6 +20,7 @@
 # V0.0.57：收件口链接提取补齐中文标点结尾（微信真机分享「标题。链接。」不再挂标点）。
 # V0.0.58：所有模态弹窗 Teleport 到 body —— fixed 遮罩不再被过渡 transform 困住盖不住顶栏标题。
 # V0.0.59：按钮尺寸全站统一（删 13 处局部覆盖）；入库百分比改阶段口径；「换成这个」改书面语。
+# V0.0.60：AI 识别独立作业（独立进度/停止/锁），可与导入同时跑；全站「打标」改「AI 识别」。
 # V0.0.52：图库图片按视口装载、离屏释放；自动加载上限；内核缓存封顶 256 MB。
 # V0.0.51：导入勾选持久化与作业分离；Web 访问设置折叠；启动后自动恢复；
 #         备份同步页就地配置；模型库扩充（中文 CLIP / DINOv2-L）；
@@ -87,6 +88,7 @@ hiddenimports = [
     "media_resource_manager.rule_market",
     "media_resource_manager.ssrf",
     "media_resource_manager.inbox",
+        "media_resource_manager.tag_job",  # V0.0.60 独立识别作业（函数内惰性导入）
     "media_resource_manager.powerdown",
     "media_resource_manager.remote_import",
     # 纯 Python、函数内懒加载 —— PyInstaller 静态扫描抓不到，必须手列，

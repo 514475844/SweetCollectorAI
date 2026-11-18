@@ -62,3 +62,24 @@ def test_version_bumped():
     assert m and int(m.group(1)) >= 59, f"版本回退：{VERSION}"
     assert f"V{VERSION}" in (ROOT / "build" / "pyinstaller.spec").read_text(encoding="utf-8"), \
         "打包注释版本与 __init__.py 不一致"
+
+# ── ④ 用户可见文案禁「打标」行话 ──────────────────────────
+def test_no_colloquial_tagging_copy_in_user_strings():
+    """「打标」是内部行话，用户可见文案一律用「AI 识别」。注释不受此约束。"""
+    import re
+    files = [
+        "components/ImportFolder.vue", "components/Onboarding.vue", "importJob.js",
+    ]
+    for rel in files:
+        s = _read(rel)
+        clean = re.sub(r"<!--[\s\S]*?-->", "", s)
+        clean = re.sub(r"/\*[\s\S]*?\*/", "", clean)
+        clean = re.sub(r"(?m)^\s*//.*$", "", clean)
+        clean = re.sub(r"(?<=\S)\s*//.*$", "", clean)  # 行尾注释
+        assert "打标" not in clean, f"{rel}: 用户可见文案里还有「打标」行话"
+    # 后端状态消息
+    for rel in ["import_folder.py", "learn_folder.py", "learn_imported.py", "webui.py"]:
+        s = (ROOT / "media_resource_manager" / rel).read_text(encoding="utf-8")
+        clean = re.sub(r'"""[\s\S]*?"""', '""', s)
+        clean = re.sub(r"(?m)^\s*#.*$", "", clean)
+        assert "打标" not in clean, f"{rel}: 用户可见消息里还有「打标」行话"

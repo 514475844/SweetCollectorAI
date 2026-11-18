@@ -21,8 +21,10 @@
  */
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { imp, startImport, cancelImport, resumeImport, loadLast, saveForm, clearResult }
-  from '../importJob'
+import {
+  imp, tagImp, startImport, cancelImport, resumeImport, loadLast, saveForm, clearResult,
+  startTagging, cancelTagging, refreshTagPending, clearTagResult,
+} from '../importJob'
 import Icon from './Icon.vue'
 import FolderPicker from './FolderPicker.vue'
 
@@ -55,15 +57,12 @@ const canStart = computed(() => !busy.value && (
 // phase 由后端给：文件夹导入是 index/tag，WebDAV 导入还多 list/download。
 const phaseLabel = computed(() => {
   if (imp.starting) return isRemote.value ? '正在连接服务器' : (isDav.value ? '正在连接 WebDAV' : '正在准备')
-  // 索引跑完、打标还没开始的空档：还显示「正在入库 2500/2500」会像卡住了
-  if (imp.phase === 'index' && imp.total > 0 && imp.done >= imp.total) {
-    return imp.indexOnly ? '入库完成' : '入库完成，正在准备打标签'
-  }
+  // V0.0.60：导入只报入库/下载阶段，AI 识别已经是独立作业（另一条进度条）。
   const m = {
     list: '正在读取目录',
     download: '正在下载图片',
     index: '正在入库',
-    tag: '正在打标签',
+    tag: '正在 AI 识别',
   }
   return m[imp.phase] || (imp.running ? '正在准备' : '')
 })
@@ -91,6 +90,24 @@ function fmt(n) {
   return v.toLocaleString('zh-CN')
 }
 
+// ── V0.0.60：AI 识别独立作业（自己的进度条/停止键，可与导入同时跑）──
+const tagText = computed(() => {
+  if (tagImp.pending >= 0 && !tagImp.running && !tagImp.result) {
+    return tagImp.pending > 0 ? `还有 ${fmt(tagImp.pending)} 张待识别` : '全部已识别'
+  }
+  if (!tagImp.total) return '正在统计待识别图片…'
+  return `${fmt(tagImp.done)} / ${fmt(tagImp.total)} 张 · ${tagImp.pct}%`
+})
+const tagPct = computed(() => {
+  if (tagImp.total > 0) return Math.min(100, Math.max(0, tagImp.pct))
+  return 2
+})
+
+watch(() => tagImp.doneSeq, () => { refreshTagPending() })
+watch(() => tagImp.running, (v) => { if (!v) refreshTagPending() })
+
+onMounted(refreshTagPending)
+
 // ── 结果卡片 ─────────────────────────────────────────────────
 const r = computed(() => imp.result || {})
 const resRows = computed(() => {
@@ -101,8 +118,8 @@ const resRows = computed(() => {
   if (x.downloaded) rows.push(['从 WebDAV 下载', `${fmt(x.downloaded)} 张`])
   if (x.already_here) rows.push(['复用已下载', `${fmt(x.already_here)} 张`])
   if (x.copied) rows.push(['复制进软件图库', `${fmt(x.copied)} 张`])
-  if (x.tagged) rows.push(['已打标签', `${fmt(x.tagged)} 张`])
-  if (x.pending) rows.push(['待打标签', `${fmt(x.pending)} 张`])
+  if (x.tagged) rows.push(['已识别', `${fmt(x.tagged)} 张`])
+  if (x.pending) rows.push(['待识别', `${fmt(x.pending)} 张`])
   if (x.errors) rows.push(['读不出、已跳过', `${fmt(x.errors)} 个文件`])
   return rows
 })
@@ -176,9 +193,9 @@ onMounted(refreshLast)
       <Icon name="rotate-cw" :size="14" />
       <span>
         「{{ resume.name || resume.folder }}」还有
-        <b>{{ fmt(resume.pending) }}</b> 张没打标签（共 {{ fmt(resume.total) }} 张）
+        <b>{{ fmt(resume.pending) }}</b> 张未识别（共 {{ fmt(resume.total) }} 张）
       </span>
-      <button class="btn sm primary" @click="continueLast">接着打标</button>
+      <button class="btn sm primary" @click="continueLast">继续识别</button>
       <button class="btn sm ghost" @click="resumeHidden = true">忽略</button>
     </div>
 
@@ -255,7 +272,7 @@ onMounted(refreshLast)
         </template>
         <template v-else-if="isDav">
           只读取，不改动源站文件。图片会先下载到软件图库的 <code>webdav</code>
-          目录，再入库、打标签；中断后再点一次只补没下完的。
+          目录，再入库、AI 识别；中断后再点一次只补没下完的。
         </template>
         <template v-else>
           端口留空用默认值（SFTP 22 / SMB 445 / FTP 21 / FTPS 990）。只读取，不改动服务器文件；
@@ -277,9 +294,9 @@ onMounted(refreshLast)
           <input v-model="imp.recursive" type="checkbox" :disabled="busy" />
           包含子文件夹
         </label>
-        <label class="chk" title="先把图片收进图库、可以马上翻看，打标签留到以后再补。">
+        <label class="chk" title="勾选后本次只入库、不自动开始 AI 识别；图片仍会留在待识别队列，随时可在下方单独启动。">
           <input v-model="imp.indexOnly" type="checkbox" :disabled="busy" />
-          只入库、先不打标签
+          只入库、先不识别
         </label>
         <label class="chk" title="原图保持不动，软件里用副本。之后删除、移动只碰副本，但会占双份磁盘。">
           <input v-model="imp.copyIn" type="checkbox" :disabled="busy" />
@@ -353,9 +370,29 @@ onMounted(refreshLast)
         <button class="btn sm primary" @click="goGallery">
           <Icon name="images" :size="13" />去图库查看</button>
         <button v-if="r.pending" class="btn sm" :disabled="!canStart" @click="retagLeft">
-          <Icon name="rotate-cw" :size="13" />继续打剩下的 {{ fmt(r.pending) }} 张</button>
+          <Icon name="rotate-cw" :size="13" />继续识别剩下的 {{ fmt(r.pending) }} 张</button>
         <button class="btn sm ghost" @click="again" title="清空这次结果，回到导入表单（已入库的图片不会重复导）">
           <Icon name="rotate-cw" :size="13" />开始新的导入</button>
+      </div>
+    </div>
+
+    <!-- V0.0.60：AI 识别独立卡（自己的进度条、自己的启停，与导入各管各的） -->
+    <div v-if="tagImp.running || tagImp.result || (tagImp.pending > 0)" class="state tagcard">
+      <div class="state-hd">
+        <Icon :anim="tagImp.running ? 'spin' : ''"
+              :name="tagImp.running ? 'loader-circle' : 'sparkles'" :size="15" />
+        <b>AI 识别</b>
+        <span class="muted small">{{ tagText }}</span>
+        <span v-if="tagImp.eta && tagImp.running" class="muted small">约剩 {{ tagImp.eta }}</span>
+      </div>
+      <div v-if="tagImp.running" class="bar"><i :style="{ width: tagPct + '%' }" /></div>
+      <p v-if="tagImp.err" class="msg err">{{ tagImp.err }}</p>
+      <div class="state-ft">
+        <button v-if="tagImp.running" class="btn sm danger" @click="cancelTagging">
+          <Icon name="pause" :size="13" />停止识别</button>
+        <button v-else class="btn sm primary" :disabled="tagImp.starting" @click="startTagging">
+          <Icon name="play" :size="13" />{{ tagImp.starting ? '正在启动…' : (tagImp.pending > 0 ? `识别这 ${fmt(tagImp.pending)} 张` : '启动识别') }}</button>
+        <span class="muted small">识别可以随时启停，不影响导入。</span>
       </div>
     </div>
 

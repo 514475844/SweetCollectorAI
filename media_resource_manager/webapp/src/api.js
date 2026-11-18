@@ -261,6 +261,13 @@ export const api = {
   importRemote: (opts) => req('/api/import/remote',
     { method: 'POST', body: opts, timeout: 30000 }),
   importCancel: () => req('/api/import/cancel', { method: 'POST', body: {} }),
+  // V0.0.60：AI 识别独立作业（自己的进度条、自己的停止键，可与导入同时跑）
+  tagStart: (opts = {}) => req('/api/import/tag-start',
+    { method: 'POST', body: opts, timeout: 30000 }),
+  tagCancel: () => req('/api/import/tag-cancel', { method: 'POST', body: {} }),
+  tagJob: (id) => req('/api/import/tag-job?id=' + encodeURIComponent(id),
+    { timeout: 20000 }),
+  tagPending: () => req('/api/import/tag-pending', { timeout: 20000 }),
 
   // V0.0.46：按意思找（语义搜索）+ 画面特征补算（历史图一次性建向量）
   semanticStatus: () => req('/api/semantic/status', { timeout: 30000 }),

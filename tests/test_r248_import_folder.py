@@ -80,7 +80,7 @@ def test_index_only_puts_rows_in_library(db, cfg, tmp_path):
     r = imp.import_folder(db, cfg, str(lib), do_tag=False)
     assert r["ok"] and r["indexed"] == 5
     assert r["tagged"] == 0 and r["pending"] == 0
-    assert "只做索引" in r["ai_note"], "只索引时没说明「标签为空是正常的」"
+    assert "只做入库" in r["ai_note"], "只索引时没说明「标签为空是正常的」"
     rows = db.query("SELECT ai_state, width, height FROM images")
     assert len(rows) == 5
     assert all(x["ai_state"] == 1 for x in rows), "只索引时应标记为已处理，不留待办"
@@ -387,7 +387,7 @@ def test_import_block_lives_on_export_page():
       · 设置页也不许有
     """
     comp = _web("components/ImportFolder.vue")
-    for k in ("只入库、先不打标签", "包含子文件夹", "async function start",
+    for k in ("只入库、先不识别", "包含子文件夹", "async function start",
               "function poll", "async function cancel", "imp-result"):
         assert k in comp, f"导入组件缺「{k}」"
     assert "<FolderPicker" in comp and '@picked="pick"' in comp

@@ -54,7 +54,7 @@ export const imp = reactive({
   running: false,
   pct: 0,
   msg: '',
-  phase: '',              // index = 正在入库 / tag = 正在打标签
+  phase: '',              // index = 正在入库 / tag = 正在 AI 识别
   done: 0,
   total: 0,
   eta: '',
@@ -65,9 +65,26 @@ export const imp = reactive({
   doneSeq: 0,             // 完成次数，组件 watch 它再往外发 done
 })
 
+// V0.0.60：AI 识别是独立作业，跟导入各管各的进度条 / 停止键。
+// 导入那条只管入库（imp）；这条只管识别（tagImp），可随时启停、可与导入同时跑。
+export const tagImp = reactive({
+  running: false,
+  starting: false,
+  done: 0,
+  total: 0,
+  pct: 0,
+  eta: '',
+  result: null,
+  err: '',
+  pending: -1,            // 全库待识别数（-1=还没查）
+  doneSeq: 0,
+})
+
 let jid = ''
 let timer = null
 let infoTimer = null
+let tagJid = ''            // 识别作业号
+let tagTimer = null
 
 /** 表单单独落盘：清作业、软件重启都不该把用户勾的选项一起清掉。 */
 function _writeForm() {
@@ -166,6 +183,96 @@ function _poll() {
   _tick()
 }
 
+// ── V0.0.60：AI 识别独立作业（自己的进度条、自己的停止键）──────────
+function _stopTagTimer() {
+  if (tagTimer) { clearInterval(tagTimer); tagTimer = null }
+}
+
+function _clearTagJob() {
+  tagJid = ''
+  tagImp.running = false
+}
+
+async function _tickTag() {
+  if (!tagJid) return
+  try {
+    const j = await api.tagJob(tagJid)
+    if (!j.ok) { _stopTagTimer(); _clearTagJob(); return }
+    tagImp.done = Number(j.done || 0)
+    tagImp.total = Number(j.total || 0)
+    tagImp.pct = Number(j.pct || 0)
+    tagImp.eta = j.eta || ''
+    if (j.state === 'done' || j.state === 'failed') {
+      _stopTagTimer()
+      _clearTagJob()
+      tagImp.starting = false
+      if (j.state === 'failed') tagImp.err = j.error || '识别失败'
+      else { tagImp.result = j.result || null; tagImp.doneSeq += 1 }
+      // 识别结束后刷新一次待识别数
+      refreshTagPending()
+      return
+    }
+    tagImp.running = true
+    tagImp.starting = false
+  } catch (e) { /* 轮询偶发失败不打断 */ }
+}
+
+function _pollTag() {
+  _stopTagTimer()
+  tagTimer = setInterval(_tickTag, 1500)
+  _tickTag()
+}
+
+/** 接住后端返回的识别作业号（导入时自动带出，或用户单独启动）。 */
+export function attachTagJob(jid) {
+  if (!jid) return
+  tagJid = jid
+  tagImp.err = ''
+  tagImp.result = null
+  tagImp.running = true
+  _pollTag()
+}
+
+/** 单独启动识别作业（导入时不勾选、事后想识别时用）。 */
+export async function startTagging() {
+  if (tagImp.running || tagImp.starting) return false
+  tagImp.starting = true
+  tagImp.err = ''
+  try {
+    const r = await api.tagStart({})
+    if (!r || !r.ok) { tagImp.err = (r && r.error) || '识别没能开始'; return false }
+    attachTagJob(r.job)
+    return true
+  } catch (e) {
+    tagImp.err = _humanErr(e, '识别没能开始')
+    return false
+  } finally {
+    tagImp.starting = false
+  }
+}
+
+/** 随时停止识别（不影响导入）。 */
+export async function cancelTagging() {
+  try {
+    const r = await api.tagCancel()
+    if (!r.ok) { tagImp.err = r.error || '停止请求未被受理' }
+  } catch (e) { tagImp.err = _humanErr(e, '停止识别失败') }
+}
+
+/** 查全库待识别张数。 */
+export async function refreshTagPending() {
+  try {
+    const r = await api.tagPending()
+    if (r && r.ok) tagImp.pending = Number(r.pending || 0)
+  } catch (e) { /* 忽略 */ }
+}
+
+/** 清掉上一次的识别结果卡片。 */
+export function clearTagResult() {
+  tagImp.result = null
+  tagImp.err = ''
+}
+
 /** 清掉上一次的结果卡片（点「开始新的导入」时用）。 */
 export function clearResult() {
   imp.result = null
@@ -227,6 +334,9 @@ export async function startImport() {
     imp.msg = '已开始，正在统计文件数量…'
     _save()
     _poll()
+    // V0.0.60：后端在勾了「同时识别」时会带出独立识别作业号 —— 接上它，
+    // 界面就出现第二条「AI 识别」进度条（与入库各管各的）。
+    if (r.tag_job) attachTagJob(r.tag_job)
     return true
   } catch (e) {
     imp.err = _humanErr(e, '导入没能开始')

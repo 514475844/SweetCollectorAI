@@ -192,6 +192,7 @@ def import_folder(db, cfg, folder, *,
                   copy_to_library: bool = False,
                   recursive: bool = True,
                   tag_threads: int = 0,
+                  mark_pending: bool = False,
                   stop: Optional[Callable[[], bool]] = None,
                   progress: Optional[Callable[..., None]] = None) -> dict:
     """把 ``folder`` 里的图片导入图库。返回统计 dict。
@@ -208,6 +209,9 @@ def import_folder(db, cfg, folder, *,
         复制失败（盘满 / 没权限）单张记错跳过，不中断整批。
     ``recursive``（V0.0.35 用户要求，默认开）：关 → 只导入所选文件夹这一层，
         不进任何子文件夹；开 → 老行为，连同所有下级目录一起导。
+    ``mark_pending``（V0.0.60 识别独立作业用）：即使 do_tag=False 也把新行
+        写成 ai_state=0（待识别），好让独立识别作业能捞到。默认 False 保持
+        老语义（只入库的行 ai_state=1，不进识别队列）。
     """
     folder = Path(folder)
     if not folder.exists() or not folder.is_dir():
@@ -225,6 +229,7 @@ def import_folder(db, cfg, folder, *,
         return _run(db, cfg, folder, task_id=task_id, force=force,
                     do_tag=do_tag, copy_to_library=copy_to_library,
                     recursive=recursive, tag_threads=tag_threads,
+                    mark_pending=mark_pending,
                     stop=stop, progress=progress)
     finally:
         _RUNNING.release()
@@ -239,7 +244,7 @@ def tag_pending(db, cfg, task_id: int, progress=None,
     手动发起的导入抢同一批行。
     """
     if not _RUNNING.acquire(blocking=False):
-        return {"ok": False, "error": "已有一个导入/打标任务在跑"}
+        return {"ok": False, "error": "已有一个导入/识别任务在跑"}
     try:
         from .repo import get_task
         task = get_task(db, int(task_id))
@@ -327,7 +332,7 @@ def _copy_dest(lib_dir: Path, folder_name: str, src: Path) -> Path:
 
 def _run(db, cfg, folder: Path, *, task_id, force, do_tag, tag_threads,
          stop, progress, copy_to_library: bool = False,
-         recursive: bool = True) -> dict:
+         recursive: bool = True, mark_pending: bool = False) -> dict:
     task = resolve_task(db, cfg, folder, task_id)
     if task is None:
         return {"ok": False, "error": "任务创建失败"}
@@ -473,8 +478,10 @@ def _run(db, cfg, folder: Path, *, task_id, force, do_tag, tag_threads,
                     stats["errors"] += 1
                     stats["last_error"] = f"{p.name}: {e}"
                     continue
+            # V0.0.60：mark_pending 让纯入库的行也留在待识别队列（独立识别
+            # 作业要捞它们）。老语义不变：do_tag=False 且未标记时 ai_state=1。
             buf.append((tid, src_key, sha, w, h, int(st.st_size), reg_path,
-                        0 if do_tag else 1))
+                        0 if (do_tag or mark_pending) else 1))
             existing_paths.add(sp)
             existing_paths.add(src_key)
             existing_paths.add(reg_path)
@@ -497,7 +504,7 @@ def _run(db, cfg, folder: Path, *, task_id, force, do_tag, tag_threads,
     if not do_tag:
         # 只索引时明确说一句：否则用户看到「几十万张、一个标签都没有」
         # 会以为是打标失败了。
-        stats["ai_note"] = "本次只做索引、未打标（标签为空是正常现象）"
+        stats["ai_note"] = "本次只做入库、未做 AI 识别（标签为空是正常现象）"
     if do_tag:
         if _tag_stage(db, cfg, tid, task, stats, _stop, _prog, tag_threads):
             stats["stopped"] = True
@@ -530,11 +537,16 @@ def _run(db, cfg, folder: Path, *, task_id, force, do_tag, tag_threads,
 
 
 def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
-               tag_threads: int) -> bool:
+               tag_threads: int, should_wait=None, idle_rounds: int = 0) -> bool:
     """给 ai_state=0 的行打标。每批取 TAG_BATCH 张，打完再取下一批。
 
     返回 ``True`` 表示**被停止**中断（调用方要据此把结果标成「已停止」，
     否则界面会把「停了一半」显示成「导入完成」）。
+
+    V0.0.60：``should_wait`` / ``idle_rounds`` 给独立识别作业用 —— 边入库边
+    识别时，导入还在写新行、这一刻可能暂时捞不到待识别行。此时若
+    ``should_wait()`` 为真就等一轮再捞（最多 idle_rounds 轮），别提前收工。
+    导入内部的旧调用不传这两个参数，行为完全不变。
     """
     # 2026-10-30：三级兜底 —— 任务词表 → 全局词表 → 内置通用词表。
     # 少了最后一级时，历史上建的老任务（ai_labels 存的是空数组）会永远
@@ -572,7 +584,7 @@ def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
                 threads=threads, gpu=bool(getattr(cfg, "ai_gpu", True)))
             if getattr(clf, "backend", "") != "clip":
                 note = (f"本地 AI 处于降级模式（后端={getattr(clf, 'backend', '?')}）；"
-                        "图片已入库但未打标签")
+                        "图片已入库但未做 AI 识别")
                 clf = None
             elif getattr(clf, "model_note", ""):
                 note = str(clf.model_note)
@@ -580,7 +592,7 @@ def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
             clf = None
             note = f"本地 AI 不可用：{e}"
     else:
-        note = "没有配置主题词，本次只入库不打标签"
+        note = "没有配置主题词，本次只入库、不做 AI 识别"
     stats["ai_note"] = note
 
     try:
@@ -591,7 +603,10 @@ def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
         pending = 0
     stats["tag_total"] = pending
     stopped = False
-    if not pending:
+    # V0.0.60：独立识别作业可能在导入还没写完时就启动，此刻 pending=0 是
+    # 正常的「暂时没活」，不能像老逻辑那样立即返回。有 should_wait 时先放行，
+    # 让下面的循环去等导入产出新行。
+    if not pending and not (should_wait and should_wait()):
         return False
 
     if clf is None:
@@ -617,6 +632,7 @@ def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
 
     done = 0
     meter = _Meter()
+    idle = 0   # V0.0.60：连续捞不到行的轮数（边入库边识别时用）
 
     # V0.0.46：打标顺手把图片向量也存下来（classify_with_vec 一次推理同时
     # 出标签和向量，零额外成本）。这样以后新导入的图天然带语义特征，
@@ -646,7 +662,14 @@ def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
             "SELECT id, path FROM images WHERE task_id=? AND ai_state=0 "
             "ORDER BY id LIMIT ?", (tid, TAG_BATCH))
         if not rows:
+            # V0.0.60：独立识别作业 + 导入还在跑 → 暂时没活是暂时的，等一轮再捞。
+            # 只有"导入已停"或"等够轮数"才真收工，避免导入没写完就提前结束。
+            if should_wait and should_wait() and idle < idle_rounds:
+                idle += 1
+                time.sleep(1.0)
+                continue
             break
+        idle = 0
         items = [(int(r["id"]), str(r["path"] or "")) for r in rows]
         # ① 事务外并行推理（CLIP 内部另有并发闸门，不会把核打满）
         with ThreadPoolExecutor(max_workers=min(workers, len(items))) as ex:
@@ -684,5 +707,5 @@ def _tag_stage(db, cfg, tid: int, task, stats: dict, _stop, _prog,
             break                       # 整批都失败：避免死循环
         if stopped:
             break
-    _prog("tag", done, pending, "已停止" if stopped else "打标完成", None)
+    _prog("tag", done, pending, "已停止" if stopped else "AI 识别完成", None)
     return stopped
