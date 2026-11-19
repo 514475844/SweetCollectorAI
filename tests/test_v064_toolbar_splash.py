@@ -24,8 +24,8 @@ def test_tag_control_always_visible_in_gallery():
     # 旧的反模式：running||starting||pending>0 才显示 —— 必须已移除
     assert "tagImp.running || tagImp.starting || tagImp.pending > 0" not in grid, \
         "识别控件仍带「识别完就隐藏」的旧条件"
-    # pending=0 时按钮置灰但仍在
-    assert "off: tagImp.pending <= 0" in grid and "tagBtn.off" in grid
+    # V0.0.65：按钮不再因 pending<=0（含未查询的 -1）被锁死
+    assert "tagBtn.off" in grid and "off: false" in grid
 
 
 def test_toolbar_narrow_window_rows_split():
@@ -50,3 +50,18 @@ def test_splash_defers_main_window():
     fin = fin[:fin.find("\ndef ")]
     assert "win.move(home)" in fin and "_mrm_home" in fin, \
         "收尾时没把窗口挪回原位"
+
+
+# ── V0.0.65：pending 未知(-1) 不能误显示「全部已识别」/锁死按钮 ──────────
+def test_pending_unknown_not_treated_as_all_done():
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    # -1（还没查到）必须有单独的「统计中」分支，不能落进 else 显示「全部已识别」
+    assert "tagImp.pending < 0" in grid, "pending=-1 未单独处理"
+    assert "正在统计待识别图片" in grid, "pending 未知时应显示统计中"
+    # 按钮不得因 pending<=0 被禁用（原来 off=pending<=0 把 -1 也锁死）
+    assert "off: false" in grid, "启动识别按钮不应被 pending 锁死"
+    assert "off: tagImp.pending <= 0" not in grid, "按钮仍带旧的禁用条件"
+
+def test_gallery_refreshes_pending_on_mount_and_view_switch():
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    assert "if (props.view === 'gallery') refreshTagPending()" in grid,         "图库页挂载/切换时未刷新待识别数"

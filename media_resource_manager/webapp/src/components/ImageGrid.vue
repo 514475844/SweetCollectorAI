@@ -641,14 +641,18 @@ const tagShow = computed(() => props.view === 'gallery')
 const tagLabel = computed(() => {
   if (tagImp.running) return `识别中 ${fmtCnt(tagImp.done)}${tagImp.total ? ' / ' + fmtCnt(tagImp.total) : ''}`
   if (tagImp.starting) return '正在启动…'
+  // V0.0.65：pending=-1 是「还没查到」，不能当成「全部已识别」（原来 -1 落到
+  // else 分支显示「全部已识别」，可下面的图全是待识别，自相矛盾）。
+  if (tagImp.pending < 0) return '正在统计待识别图片…'
   return tagImp.pending > 0 ? `还有 ${fmtCnt(tagImp.pending)} 张待识别` : '全部已识别'
 })
 const tagBtn = computed(() => {
   if (tagImp.running) return { cls: 'btn xs danger', icon: 'pause', text: '停止', off: false }
-  // V0.0.64：待识别为 0（或还没查到）时按钮置灰，但控件本身常驻可见
+  // V0.0.65：未知(-1)或确实为 0 都允许点「启动识别」——让后端自己判断有没有
+  // 待识别图。原来 pending=-1 时 off=true 把按钮锁死，用户点不动。
   return { cls: 'btn xs primary', icon: 'play',
            text: tagImp.pending > 0 ? `识别这 ${fmtCnt(tagImp.pending)} 张` : '启动识别',
-           off: tagImp.pending <= 0 }
+           off: false }
 })
 watch(() => tagImp.doneSeq, () => { refreshTagPending() })
 watch(() => tagImp.running, (v) => { if (!v) refreshTagPending() })
@@ -686,6 +690,9 @@ onMounted(async () => {
     tagList.value = (tg.items || []).map((x) => ({ tag: x.tag, n: x.n }))
   } catch { /* 拉不到就不显示标签下拉 */ }
   load(false)
+  // V0.0.65：图库页挂载时查一次全库待识别数 —— 之前漏了初始刷新，
+  // pending 一直停在 -1，顶部控件误显示「全部已识别」且按钮锁死。
+  if (props.view === 'gallery') refreshTagPending()
   watchImages()
   nextTick(() => {
     // V0.0.52：滚动容器是 <main class="main">，以前用默认视口判断哨兵，
@@ -730,7 +737,11 @@ function onKey(e) {
   else { return }
   e.preventDefault?.()
 }
-watch(() => [props.view], reload)
+watch(() => [props.view], () => {
+  reload()
+  // V0.0.65：切回图库页时重查待识别数（组件复用不重触发 onMounted）
+  if (props.view === 'gallery') refreshTagPending()
+})
 watch(sort, reload)
 watch(flag, reload)
 watch(taskFilter, reload)
