@@ -70,19 +70,42 @@ def test_clip_model_onnx_run_locked():
             raise AssertionError(f"clip_model.py L{i+1} 的 _session.run 上方找不到 with 块")
 
 
-# ── ③ 识别卡位置：图库页有 TagCard，导入页没有识别卡 ───────────────
+# ── ③ 识别控件位置：在图库工具栏白框里，导入页没有 ───────────────
 def test_tagcard_in_gallery_not_import():
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    assert "tagctl" in grid, "图库工具栏必须带 AI 识别控件（V0.0.62 并入白框）"
     gallery = _read("media_resource_manager/webapp/src/views/Gallery.vue")
-    assert "TagCard" in gallery, "图库页必须渲染 TagCard（AI 识别卡）"
+    assert "TagCard" not in gallery, "独立识别卡已并入工具栏，图库页不再挂 TagCard"
+    assert "impnote" not in gallery, "「请到导入与导出页导入」指引句已按用户要求删除"
 
     imp = _read("media_resource_manager/webapp/src/components/ImportFolder.vue")
-    # 导入页不得再渲染识别卡（tagImp 相关模板与脚本都已挪走）
-    assert "tagcard" not in imp, "导入页不应再渲染 AI 识别卡"
+    # 导入页不得渲染识别控件（tagImp 相关模板与脚本都已挪走）
     assert "tagImp" not in imp, "导入页不应再引用 tagImp"
     assert "TagCard" not in imp, "导入页不应再引用 TagCard"
 
+def test_tagcard_component_removed():
+    tag = ROOT / "media_resource_manager/webapp/src/components/TagCard.vue"
+    assert not tag.exists(), "TagCard.vue 已并入 ImageGrid 工具栏，应删除"
 
-def test_tagcard_component_exists_and_uses_importjob():
-    tag = _read("media_resource_manager/webapp/src/components/TagCard.vue")
-    assert "from '../importJob'" in tag, "TagCard 必须复用 importJob 的识别作业状态"
-    assert "startTagging" in tag and "cancelTagging" in tag, "TagCard 必须有启停能力"
+def test_no_startup_note_copy():
+    # 用户点名删除的说明句，任何页面都不许再出现
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    assert "识别可以随时启停" not in grid
+
+
+# ── ⑤ V0.0.62：识别控件在工具栏里、说明文字删净、导入页不越权 ────────
+def test_toolbar_has_tag_controls_only_no_note():
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    assert "识别随时" not in grid and "识别可以随时启停，不影响导入" not in grid
+    # 控件三要素：AI 识别字样、张数、启动按钮
+    assert "AI 识别" in grid and "还有" in grid and "识别这" in grid
+
+def test_import_result_card_links_to_gallery_not_retag():
+    imp = _read("media_resource_manager/webapp/src/components/ImportFolder.vue")
+    assert "retagLeft" not in imp, "导入结果卡不许再起识别作业（统一归图库控制）"
+    assert "继续识别剩下的" not in imp
+
+def test_narrow_window_css_present():
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    assert "@media (max-width: 1120px)" in grid, "窄窗（最小 1024）自适应规则缺失"
+    assert ".bt { display: none" in grid or ".bt {" in grid, "窄窗下动作按钮文字未收进图标"

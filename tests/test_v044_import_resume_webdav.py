@@ -385,7 +385,7 @@ def test_two_sources_and_webdav_fields():
 
 def test_resume_bar_wired():
     s = _comp()
-    assert "继续识别" in s and "loadLast" in s
+    assert "继续导入" in s and "loadLast" in s
     job = (WEB / "importJob.js").read_text(encoding="utf-8")
     assert "export async function loadLast" in job
     assert "api.importLast()" in job

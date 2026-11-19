@@ -411,9 +411,8 @@ def test_import_block_lives_on_export_page():
 
     gal = _web("views/Gallery.vue")
     assert "ImportFolder" not in gal, "图库页又挂了一份导入组件（应该只有指路）"
-    # V0.0.32：指路直达导入标签
-    assert "path: '/export'" in gal and "tab: 'imp'" in gal, \
-        "图库页链接没带上导入标签参数"
+    # V0.0.62（用户）：图库页那句「请到导入与导出页导入」指引文字删掉，
+    # 侧栏本来就有入口，不再指路；核心约束仍是导入组件只在导出页挂一份。
 
     st = _web("views/Settings.vue")
     assert "async function startImport" not in st and "导入文件夹" not in st, \

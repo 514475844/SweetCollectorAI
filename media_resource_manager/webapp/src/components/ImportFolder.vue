@@ -145,11 +145,7 @@ async function continueLast() {
   resume.value = null
 }
 
-/** 结果卡上的「继续打标」：同一个来源重新导入一次，已入库的自动跳过。 */
-async function retagLeft() {
-  imp.indexOnly = false
-  await startImport()
-}
+/** V0.0.62：结果卡原来的重新导入式补识别入口已撤 —— 识别统一在图库工具栏控制。 */
 
 function goGallery() {
   router.push('/gallery')
@@ -174,9 +170,9 @@ onMounted(refreshLast)
       <Icon name="rotate-cw" :size="14" />
       <span>
         「{{ resume.name || resume.folder }}」还有
-        <b>{{ fmt(resume.pending) }}</b> 张未识别（共 {{ fmt(resume.total) }} 张）
+        <b>{{ fmt(resume.pending) }}</b> 张没处理完（共 {{ fmt(resume.total) }} 张）
       </span>
-      <button class="btn sm primary" @click="continueLast">继续识别</button>
+      <button class="btn sm primary" @click="continueLast">继续导入</button>
       <button class="btn sm ghost" @click="resumeHidden = true">忽略</button>
     </div>
 
@@ -350,8 +346,10 @@ onMounted(refreshLast)
       <div class="state-ft">
         <button class="btn sm primary" @click="goGallery">
           <Icon name="images" :size="13" />去图库查看</button>
-        <button v-if="r.pending" class="btn sm" :disabled="!canStart" @click="retagLeft">
-          <Icon name="rotate-cw" :size="13" />继续识别剩下的 {{ fmt(r.pending) }} 张</button>
+        <!-- V0.0.62（用户）：识别是图库页的事，结果卡不再放「继续识别」按钮，
+             免得同一功能两处控制；待识别数在图库工具栏一眼能看到。 -->
+        <button v-if="r.pending" class="btn sm" @click="goGallery">
+          <Icon name="sparkles" :size="13" />还有 {{ fmt(r.pending) }} 张待识别（去图库）</button>
         <button class="btn sm ghost" @click="again" title="清空这次结果，回到导入表单（已入库的图片不会重复导）">
           <Icon name="rotate-cw" :size="13" />开始新的导入</button>
       </div>

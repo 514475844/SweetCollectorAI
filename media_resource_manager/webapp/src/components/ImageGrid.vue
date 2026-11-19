@@ -5,6 +5,9 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { api } from '../api'
 import ContextMenu from './ContextMenu.vue'
 import Icon from './Icon.vue'
+// V0.0.62（用户）：AI 识别控件并入图库工具栏白框 —— 只留「AI 识别 /
+// 还有 N 张待识别 / 启动按钮」三样，识别卡那种整块卡片和说明文字全删。
+import { tagImp, startTagging, cancelTagging, refreshTagPending } from '../importJob'
 // V0.0.21：内置窗口里 Ctrl+A = 全选本页已加载项，F5 = 重拉当前页数据。
 import { onShellSelectAll, onShellRefresh } from '../nativeShell'
 let unbindShell = []
@@ -630,6 +633,23 @@ function fmtSize(b) {
   return Math.round(b / 1024) + ' KB'
 }
 
+// —— V0.0.62：工具栏里的 AI 识别控件（图库视图专用，识别对象是已入库图）——
+const fmtCnt = (n) => (Number(n) || 0).toLocaleString('zh-CN')
+const tagShow = computed(() => props.view === 'gallery' &&
+  (tagImp.running || tagImp.starting || tagImp.pending > 0))
+const tagLabel = computed(() => {
+  if (tagImp.running) return `识别中 ${fmtCnt(tagImp.done)}${tagImp.total ? ' / ' + fmtCnt(tagImp.total) : ''}`
+  if (tagImp.starting) return '正在启动…'
+  return tagImp.pending > 0 ? `还有 ${fmtCnt(tagImp.pending)} 张待识别` : '全部已识别'
+})
+const tagBtn = computed(() => {
+  if (tagImp.running) return { cls: 'btn xs danger', icon: 'pause', text: '停止' }
+  return { cls: 'btn xs primary', icon: 'play',
+           text: tagImp.pending > 0 ? `识别这 ${fmtCnt(tagImp.pending)} 张` : '启动识别' }
+})
+watch(() => tagImp.doneSeq, () => { refreshTagPending() })
+watch(() => tagImp.running, (v) => { if (!v) refreshTagPending() })
+
 // —— V0.0.12：批量重命名（桌面图库菜单同款，走 rename_ops 同一份实现）——
 const renameModal = ref(null)     // { ids, mode, value }
 function openRenameModal() {
@@ -949,43 +969,55 @@ const likeLabel = computed(() =>
           <option value="m">中图</option>
           <option value="l">大图</option>
         </select>
+        <!-- V0.0.62（用户）：AI 识别控件并入这一行白框，只留标识/张数/按钮，
+             不要「可随时启停」那种说明文字。全部识别完且不跑时整组隐藏。 -->
+        <span v-if="tagShow" class="tagctl" :title="tagLabel">
+          <Icon :anim="tagImp.running ? 'spin' : ''"
+                :name="tagImp.running ? 'loader-circle' : 'sparkles'" :size="13" />
+          <b>AI 识别</b>
+          <span class="muted small tagnum">{{ tagLabel }}</span>
+          <button :class="tagBtn.cls" :disabled="tagImp.starting"
+                  @click="tagImp.running ? cancelTagging() : startTagging()">
+            <Icon :name="tagBtn.icon" :size="12" />{{ tagBtn.text }}</button>
+        </span>
       </div>
       <div class="right">
-        <span class="muted small" v-if="items.length">{{ items.length }} 张</span>
+        <span class="muted small counttxt" v-if="items.length">{{ items.length }} 张</span>
         <!-- V0.0.46：每次加载多少张（用户要求，审核/图库/隔离区共用）。
              往下滚到底会自动续加载，这个数只管「一次拉多少」。 -->
         <label class="pagesize" title="每次加载多少张：往下滚动会自动续加载，这个数字只决定一次拉多少">
-          每页
+          <span>每页</span>
           <select :value="pageSize" @change="setPageSize($event.target.value)">
             <option v-for="n in PAGE_SIZES" :key="n" :value="n">{{ n }} 张</option>
           </select>
         </label>
         <!-- 2026-10-27：文案改成实话 —— 滚了几页它就是选**全部已加载**，
              原来写「本页」会让用户以为只选了看得见的那一屏，一删删掉几百张。 -->
-        <button class="btn sm ghost" :disabled="!items.length" @click="selectAllInPage">
+        <button class="btn sm ghost" :disabled="!items.length" @click="selectAllInPage"
+                :title="(items.length && selected.size === items.length) ? '取消全选' : `全选已加载（${items.length}）`">
           <Icon name="square-check-big" :size="14" />
-          {{ (items.length && selected.size === items.length) ? '取消全选' : `全选已加载（${items.length}）` }}
+          <span class="bt">{{ (items.length && selected.size === items.length) ? '取消全选' : `全选已加载（${items.length}）` }}</span>
         </button>
         <span v-if="selCount" class="pill warn">已选 {{ selCount }}</span>
-        <button class="btn sm" :disabled="!selCount || busy" @click="act('like')">
-          <Icon name="thumbs-up" :size="14" />{{ likeLabel }}
+        <button class="btn sm" :disabled="!selCount || busy" :title="likeLabel" @click="act('like')">
+          <Icon name="thumbs-up" :size="14" /><span class="bt">{{ likeLabel }}</span>
         </button>
-        <button class="btn sm" :disabled="!selCount || busy" @click="act('favorite')">
-          <Icon name="star" :size="14" />收藏
+        <button class="btn sm" :disabled="!selCount || busy" title="收藏" @click="act('favorite')">
+          <Icon name="star" :size="14" /><span class="bt">收藏</span>
         </button>
-        <button class="btn sm" :disabled="!selCount || busy" @click="act('dislike')">
-          <Icon name="thumbs-down" :size="14" />不喜欢
+        <button class="btn sm" :disabled="!selCount || busy" title="不喜欢" @click="act('dislike')">
+          <Icon name="thumbs-down" :size="14" /><span class="bt">不喜欢</span>
         </button>
-        <button class="btn sm" :disabled="!selCount || busy" @click="openTagModal">
-          <Icon name="tags" :size="14" />标签…
+        <button class="btn sm" :disabled="!selCount || busy" title="标签…" @click="openTagModal">
+          <Icon name="tags" :size="14" /><span class="bt">标签…</span>
         </button>
         <button v-if="props.renamable" class="btn sm" :disabled="!selCount || busy"
                 title="给选中文件名加前缀，或按模板批量重命名（原有图库的文件不会改动）"
                 @click="openRenameModal">
-          <Icon name="pencil" :size="14" />重命名…
+          <Icon name="pencil" :size="14" /><span class="bt">重命名…</span>
         </button>
-        <button class="btn sm danger" :disabled="!selCount || busy" @click="act('delete')">
-          <Icon name="trash" :size="14" />删除
+        <button class="btn sm danger" :disabled="!selCount || busy" title="删除" @click="act('delete')">
+          <Icon name="trash" :size="14" /><span class="bt">删除</span>
         </button>
         <button v-if="selCount" class="btn sm ghost" title="取消选择" @click="selected = new Set()">
           <Icon name="x" :size="14" />
@@ -1317,6 +1349,32 @@ const likeLabel = computed(() =>
 .toolbar .left select:nth-of-type(2) { width: 200px; }
 .toolbar .left select.tagsel { width: 190px; }
 .toolbar .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* V0.0.62：工具栏里的 AI 识别控件（图内角标语义 = 内联一组，不换整行） */
+.tagctl { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 2px 4px 2px 8px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text); font-size: 12px; }
+.tagctl b { font-size: 12px; font-weight: 600; }
+/* V0.0.62（用户）：最小窗口 1024 下所有控件都要看得见 —— 下拉按选中项文字
+   自适应收窄、动作按钮退成纯图标（悬停有说明）、计数与「每页」字样隐藏；
+   实在放不下就自动换到第二行（wrap），宁可两行也绝不裁切溢出。 */
+@media (max-width: 1120px) {
+  .toolbar { gap: 6px 10px; padding: 8px 10px; }
+  .toolbar .left { gap: 6px; min-width: 0; flex-wrap: wrap; flex: 1 1 auto; }
+  .toolbar .left select { width: auto; flex: 0 1 auto; max-width: 112px;
+    padding: 4px 4px 4px 6px; font-size: 12px; text-overflow: ellipsis; }
+  .toolbar .left select:nth-of-type(2) { width: auto; }
+  .toolbar .left select.tagsel { width: auto; }
+  .toolbar .left input { min-width: 90px; flex: 1 1 110px; padding: 4px 8px; font-size: 12px; }
+  .toolbar .right { gap: 6px; flex-wrap: wrap; flex: 0 1 auto; }
+  .toolbar .right .btn.sm { padding: 4px 6px; font-size: 12px; border-radius: 7px;
+    height: 26px; box-sizing: border-box; }
+  .toolbar .right .pagesize { font-size: 11px; }
+  .toolbar .right .pagesize > span, .toolbar .right .counttxt { display: none; }
+  /* 批量动作按钮只留图标（文字进 title），选中计数仍显示 */
+  .toolbar .right .btn.sm .bt { display: none; }
+  .tagctl { padding: 2px 3px 2px 6px; gap: 4px; }
+  .tagctl .tagnum { display: none; }
+}
 /* V0.0.49：语义检索 —— 状态条、补算条 */
 .btn.sem.on { background: var(--brand); border-color: var(--brand); color: #fff; }
 .semnote { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
