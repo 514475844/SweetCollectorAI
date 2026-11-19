@@ -12,5 +12,5 @@ Design rules baked into the codebase:
   * Destructive operations are undoable (isolation dir / recycle bin) by default.
 """
 
-VERSION = "0.0.63"
+VERSION = "0.0.64"
 __version__ = VERSION

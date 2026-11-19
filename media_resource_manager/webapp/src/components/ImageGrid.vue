@@ -634,18 +634,21 @@ function fmtSize(b) {
 }
 
 // —— V0.0.62：工具栏里的 AI 识别控件（图库视图专用，识别对象是已入库图）——
+// V0.0.64（用户）：图库页**常驻**显示，不再「识别完就整组消失」——
+// 用户原话「AI识别按钮呢？」。pending=0 且没在跑时显示「全部已识别」+ 置灰按钮。
 const fmtCnt = (n) => (Number(n) || 0).toLocaleString('zh-CN')
-const tagShow = computed(() => props.view === 'gallery' &&
-  (tagImp.running || tagImp.starting || tagImp.pending > 0))
+const tagShow = computed(() => props.view === 'gallery')
 const tagLabel = computed(() => {
   if (tagImp.running) return `识别中 ${fmtCnt(tagImp.done)}${tagImp.total ? ' / ' + fmtCnt(tagImp.total) : ''}`
   if (tagImp.starting) return '正在启动…'
   return tagImp.pending > 0 ? `还有 ${fmtCnt(tagImp.pending)} 张待识别` : '全部已识别'
 })
 const tagBtn = computed(() => {
-  if (tagImp.running) return { cls: 'btn xs danger', icon: 'pause', text: '停止' }
+  if (tagImp.running) return { cls: 'btn xs danger', icon: 'pause', text: '停止', off: false }
+  // V0.0.64：待识别为 0（或还没查到）时按钮置灰，但控件本身常驻可见
   return { cls: 'btn xs primary', icon: 'play',
-           text: tagImp.pending > 0 ? `识别这 ${fmtCnt(tagImp.pending)} 张` : '启动识别' }
+           text: tagImp.pending > 0 ? `识别这 ${fmtCnt(tagImp.pending)} 张` : '启动识别',
+           off: tagImp.pending <= 0 }
 })
 watch(() => tagImp.doneSeq, () => { refreshTagPending() })
 watch(() => tagImp.running, (v) => { if (!v) refreshTagPending() })
@@ -976,7 +979,7 @@ const likeLabel = computed(() =>
                 :name="tagImp.running ? 'loader-circle' : 'sparkles'" :size="13" />
           <b>AI 识别</b>
           <span class="muted small tagnum">{{ tagLabel }}</span>
-          <button :class="tagBtn.cls" :disabled="tagImp.starting"
+          <button :class="tagBtn.cls" :disabled="tagImp.starting || tagBtn.off"
                   @click="tagImp.running ? cancelTagging() : startTagging()">
             <Icon :name="tagBtn.icon" :size="12" />{{ tagBtn.text }}</button>
         </span>
@@ -1365,7 +1368,9 @@ const likeLabel = computed(() =>
    自适应收窄、动作按钮退成纯图标（悬停有说明）、计数与「每页」字样隐藏；
    实在放不下就自动换到第二行（wrap），宁可两行也绝不裁切溢出。 */
 @media (max-width: 1120px) {
-  .toolbar { gap: 6px 10px; padding: 8px 10px; }
+  /* V0.0.64（用户）：窄窗下筛选下拉各占一整行、动作按钮各占一整行，
+     不再左右两组交错换行（原来混排看着像"冲突"）。每行内部仍自动换行兜底。 */
+  .toolbar { gap: 6px; padding: 8px 10px; flex-direction: column; align-items: stretch; }
   .toolbar .left { gap: 6px; min-width: 0; flex-wrap: wrap; flex: 1 1 auto; }
   .toolbar .left select { width: auto; flex: 0 1 auto; max-width: 112px;
     padding: 4px 4px 4px 6px; font-size: 12px; text-overflow: ellipsis; }
