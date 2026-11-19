@@ -298,7 +298,8 @@ def preference_origins(db) -> dict:
     为什么要单独一个数 ``model_auto_neg``：它是**唯一**会被「一键清模型
     自动词」干掉的那批，看板上必须先让用户看见有多少条，别点了才知道。
     """
-    out = {"user_typed": 0, "model_auto": 0, "model_auto_neg": 0}
+    out = {"user_typed": 0, "model_auto": 0, "model_auto_neg": 0,
+           "user_imported": 0}
     try:
         rows = db.query("SELECT weight, source FROM preferences WHERE task_id=0")
     except Exception:
@@ -308,7 +309,11 @@ def preference_origins(db) -> dict:
             src = str(r["source"] or "").strip() or "model_auto"
         except Exception:
             src = "model_auto"
-        if src not in ("user_typed", "model_auto"):
+        # V0.0.67：user_imported（从用户原有图库批量学的）必须单列。
+        # 原来落到 model_auto ⇒ 看板显示「模型自动 9 条」，用户以为机器自己
+        # 猜的，甚至误点「清模型自动词」。虽因只清负权不会真删正权，但标注
+        # 错了就是对用户撒谎。
+        if src not in ("user_typed", "model_auto", "user_imported"):
             src = "model_auto"
         out[src] += 1
         if src == "model_auto" and _f(r["weight"]) < 0:
@@ -320,6 +325,7 @@ def origin_line(counts: dict) -> str:
     """一行中文说明（与 sample_line 同风格，两端共用）。"""
     c = dict(counts or {})
     return (f"学习来源：用户手填 {_i(c.get('user_typed'))} 条 · "
+            f"图库导入 {_i(c.get('user_imported'))} 条 · "
             f"模型自动 {_i(c.get('model_auto'))} 条"
             f"（其中负权 {_i(c.get('model_auto_neg'))} 条，可批量清除）")
 

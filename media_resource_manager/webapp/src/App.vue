@@ -829,7 +829,9 @@ onUnmounted(() => {
              点一下变实心红 + 「确认退出」，3 秒内再点才真退（状态栏最容易误点，
              一步直退迟早会关掉正在跑的采集）。窗口右上角的 ✕ 已改回收进托盘，
              所以这里是「彻底退出」唯一常显的入口。 -->
-        <button class="quit-btn" :class="{ armed: quitArmed }"
+        <!-- V0.0.67：只在客户端显示 —— 网页端点「退出软件」后端接不住，
+             浏览器也关不掉本机进程，留着只会误导（用户实测反馈）。 -->
+        <button v-if="isNativeShell()" class="quit-btn" :class="{ armed: quitArmed }"
                 :title="quitArmed
                   ? '3 秒内再点一次：彻底退出软件'
                   : '彻底退出软件（后台采集一并停止）；只想收进托盘请点窗口的关闭按钮'"

@@ -3,7 +3,8 @@
 // 接口沿用后端同一分页通道：/api/view/<view>（time 排序走 id 游标，不重不漏）。
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { api } from '../api'
-import ContextMenu from './ContextMenu.vue'
+// V0.0.67：命令式右键菜单（绕开 Vue Teleport/v-if 渲染问题）
+import { showContextMenu, closeContextMenu } from '../contextMenu'
 import Icon from './Icon.vue'
 // V0.0.62（用户）：AI 识别控件并入图库工具栏白框 —— 只留「AI 识别 /
 // 还有 N 张待识别 / 启动按钮」三样，识别卡那种整块卡片和说明文字全删。
@@ -87,7 +88,141 @@ function setPageSize(v) {
   try { localStorage.setItem(PAGE_SIZE_KEY, String(n)) } catch { /* 隐私模式 */ }
   reload()          // 改了每页张数：从第一页重新按新张数拉
 }
+
+// V0.0.67：图库「阅读进度」——记住每个视图滚到哪，重开接着看。
+// 为什么存 localStorage 而不是后端库：
+//   · 各端各存各的 —— 内置客户端用的是独立 QWebEngine profile（落 data/webengine），
+//     网页端用浏览器自己的 profile，两边 localStorage 物理隔离，天然互不干扰，
+//     不需要后端加字段、也不需要端标识去区分；
+//   · 这是「本机看图的口味」，跟 pageSize 一个性质，不进后端库、不跟任务走。
+// 存的是「锚点图片 id」而不是纯像素：图库会不断新增图片，纯 scrollTop 会因为
+// 前面插值而错位；按 id 找回那张图再对齐，新增图片也不会让进度跑偏。
+const PROGRESS_KEY = 'mrm.scroll_progress'   // { [view]: { id, idx, top, ts } }
+const RESTORE_MAX = 1200                     // 恢复时最多补载到多少张（内存保护）
+let restoringView = false                    // 切页/恢复窗口内不写进度，防路由清零误覆盖
+let scrollHost = null                        // 滚动宿主容器（挂/解绑 scroll 监听）
+function _readProgress() {
+  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') || {} }
+  catch { return {} }
+}
+function _writeProgress(map) {
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(map)) } catch { /* 隐私模式 */ }
+}
+/** 找出当前视口最靠上的那张可见图片（滚动锚点）：{ id, idx }。 */
+function topVisibleAnchor() {
+  const main = gridEl.value?.closest('.main')
+  const grid = gridEl.value
+  if (!main || !grid) return null
+  const mr = main.getBoundingClientRect()
+  const cells = [...grid.querySelectorAll('figure.cell[data-id]')]
+  for (let i = 0; i < cells.length; i++) {
+    const r = cells[i].getBoundingClientRect()
+    if (r.bottom > mr.top + 2) {                  // 底边还没越过视口顶 = 当前最上面那张
+      const id = Number(cells[i].dataset.id)
+      if (id) return { id, idx: i }
+    }
+  }
+  return null
+}
+/** 记住当前视图滚动位置：以视口顶部那张图的 id 为锚。 */
+function saveProgress() {
+  if (restoringView) return
+  const main = gridEl.value?.closest('.main')
+  const top = main ? main.scrollTop : 0
+  const map = _readProgress()
+  // 几乎在顶部时不覆盖已有进度：切页时路由会把 scrollTop 强制归零，
+  // 那不是用户「从头看」的意愿，不能把它当成新进度写回去。
+  if (top < 8 && map[props.view]) return
+  const anchor = topVisibleAnchor()
+  if (!anchor && top < 1) return
+  map[props.view] = { id: anchor?.id || 0, idx: anchor?.idx ?? -1, top, ts: Date.now() }
+  _writeProgress(map)
+}
+let scrollTimer = 0
+function onScrollProgress() {
+  clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(saveProgress, 200)    // 节流：滚停下 200ms 才写一次
+}
+/** 定位到锚点图；成功返回 true。 */
+function _locateAnchor(p) {
+  const grid = gridEl.value
+  const main = gridEl.value?.closest('.main')
+  if (!grid || !main) return false
+  if (p.id) {
+    const el = grid.querySelector(`figure.cell[data-id="${p.id}"]`)
+    if (el) {
+      const target = el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop
+      main.scrollTop = Math.max(0, target - 4)
+      return true
+    }
+  }
+  return false
+}
+/** 计算目标 scrollTop：优先锚图，退回记录像素。返回 -1 表示暂时算不出。 */
+function _progressTarget(p) {
+  const main = gridEl.value?.closest('.main')
+  if (!main || !gridEl.value) return -1
+  if (p.id) {
+    const el = gridEl.value.querySelector(`figure.cell[data-id="${p.id}"]`)
+    if (el) {
+      const t = el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - 4
+      return Math.max(0, t)
+    }
+  }
+  return p.top > 0 ? p.top : -1
+}
+/** 按需补载到能覆盖锚图的位置（受上限约束）。返回是否还需要继续补。 */
+async function _ensureAnchorLoaded(p) {
+  if (!p.id || !gridEl.value) return
+  if (gridEl.value.querySelector(`figure.cell[data-id="${p.id}"]`)) return
+  const want = Math.min(Math.max(p.idx || 0, 0), RESTORE_MAX)
+  if (items.value.length <= want && hasMore.value && !loading.value
+      && items.value.length < RESTORE_MAX) {
+    autoLimit.value = items.value.length + AUTO_LIMIT
+    await load(true)
+    await nextTick()
+  }
+}
+/**
+ * V0.0.67 恢复滚动位置（修实测无效）：
+ * 首批只有 60 张，锚图常在更深处，且 App.vue 的路由 watch 会在页面切换时把
+ * scrollTop 强制归零 —— 单帧恢复会被这两个因素打掉。改成多轮补载 + 定位 +
+ * 短时守护：反复补载直到锚图出现，定位后连续几帧盯住，被清零就立刻重设。
+ */
+async function restoreProgress() {
+  const p = _readProgress()[props.view]
+  if (!p) return
+  restoringView = true
+  let done = false
+  try {
+    for (let i = 0; i < 16 && !done; i++) {
+      await _ensureAnchorLoaded(p)     // 锚图不在就补一批
+      await nextTick()
+      const target = _progressTarget(p)
+      if (target >= 0) {
+        const main = gridEl.value?.closest('.main')
+        if (main) {
+          main.scrollTop = target
+          // 守护 6 帧（~0.6s）：路由 watch / 图片装载引起的高度变化会挪动位置，
+          // 发现被清零或大幅偏移就重设到锚图。
+          done = true
+          for (let g = 0; g < 6; g++) {
+            await new Promise((r) => setTimeout(r, 100))
+            const m = gridEl.value?.closest('.main')
+            if (!m) break
+            const t = _progressTarget(p)
+            if (t >= 0 && Math.abs(m.scrollTop - t) > 24) m.scrollTop = t
+          }
+        }
+      }
+      if (!done) await new Promise((r) => setTimeout(r, 120))
+    }
+  } finally {
+    setTimeout(() => { restoringView = false }, 400)
+  }
+}
 const selected = ref(new Set())
+let anchorIdx = -1   // Shift 连选锚点（items.value 下标，对标任务列表 Tasks.vue）
 const sentinel = ref(null)
 // V0.0.52：内存保护。图库动辄十万张，以前无限滚动把每一张都塞进 DOM 并
 // 解码，内核渲染进程十来分钟就吃到几个 GB。现在只让视口附近（上下各
@@ -113,7 +248,6 @@ const ZOOM_MAX = 8
 // 放大后拖动查看（transform 不占布局，没有它放大完就看不到了）
 const lbPan = ref({ x: 0, y: 0 })
 let drag = null
-const ctx = ref(null)          // 右键菜单：{x,y,items}
 const busy = ref(false)
 const dislikeModal = ref(null)  // { ids, options }
 const simInfo = ref(null)  // { seed, n, candidates }：正在看某张图的相似结果
@@ -163,7 +297,7 @@ function reload() {
   hasMore.value = true
   autoLimit.value = AUTO_LIMIT
   selected.value = new Set()
-  load(false)
+  return load(false)   // V0.0.67：返回 promise，调用方可 await 后再恢复进度
 }
 
 /** 手动「加载更多」：每次放行一批，自动滚动到此为止。 */
@@ -216,23 +350,30 @@ function toggleSel(id) {
 }
 
 function onCardContext(e, it) {
-  e.preventDefault()
-  selected.value = new Set([it.id])
-  ctx.value = {
-    x: e.clientX, y: e.clientY,
-    items: [
-      { label: reviewMode ? '通过' : '喜欢', icon: 'thumbs-up', onClick: () => act('like', [it.id]) },
-      { label: '收藏 / 取消收藏', icon: 'star', onClick: () => act('favorite', [it.id]) },
-      { label: '不喜欢…', icon: 'thumbs-down', onClick: () => act('dislike', [it.id]) },
-      { label: '复制图片地址', icon: 'copy', onClick: () => copyText(it.orig_url || it.url) },
-      { label: '在文件夹中显示', icon: 'folder-open', onClick: () => revealInFolder(it.id) },
-      { label: it.source_url ? '打开来源页' : '（无来源页）', icon: 'external-link',
-        disabled: !it.source_url,
-        onClick: () => it.source_url && window.open(it.source_url, '_blank', 'noopener') },
-      { label: '下载原图', icon: 'download', onClick: () => download(it) },
-      { label: '删除', icon: 'trash', danger: true, onClick: () => act('delete', [it.id]) },
-    ],
-  }
+  // V0.0.67：右键菜单走命令式 DOM（contextMenu.js），绕开 Vue Teleport/v-if
+  // 在本环境渲染不出菜单的问题。事件触发正常（用户实测「右键能选中」）。
+  if (e && e.preventDefault) e.preventDefault()
+  if (e && e.stopPropagation) e.stopPropagation()
+  // V0.0.67：右键不再冲掉多选（用户实测「多选后右键又变单张」）。
+  // 右键的图若已在选中集里 → 保留整个多选，菜单动作作用于整组；
+  // 不在选中集里 → 当作单选那张。
+  const inSel = selected.value.has(it.id)
+  if (!inSel) { selected.value = new Set([it.id]); anchorIdx = items.value.indexOf(it) }
+  const targetIds = () => (selected.value.size ? [...selected.value] : [it.id])
+  const n = selected.value.size
+  const items = [
+    { label: (props.reviewMode ? '通过' : '喜欢') + (n > 1 ? `（${n} 张）` : ''), icon: 'thumbs-up', onClick: () => act('like', targetIds()) },
+    { label: '收藏 / 取消收藏' + (n > 1 ? `（${n} 张）` : ''), icon: 'star', onClick: () => act('favorite', targetIds()) },
+    { label: '不喜欢…' + (n > 1 ? `（${n} 张）` : ''), icon: 'thumbs-down', onClick: () => act('dislike', targetIds()) },
+    { label: '复制图片地址', icon: 'copy', onClick: () => copyText(it.orig_url || it.url) },
+    { label: '在文件夹中显示', icon: 'folder-open', onClick: () => revealInFolder(it.id) },
+    { label: it.source_url ? '打开来源页' : '（无来源页）', icon: 'external-link',
+      disabled: !it.source_url,
+      onClick: () => it.source_url && window.open(it.source_url, '_blank', 'noopener') },
+    { label: '下载原图', icon: 'download', onClick: () => download(it) },
+    { label: '删除' + (n > 1 ? `（${n} 张）` : ''), icon: 'trash', danger: true, onClick: () => act('delete', targetIds()) },
+  ]
+  showContextMenu(e.clientX, e.clientY, items)
 }
 
 async function copyText(s) {
@@ -313,11 +454,29 @@ const _finePointer = (() => {
   catch { return true }
 })()
 
-function onCardClick(it, i) {
+function onCardClick(e, it, i) {
+
   // 框选刚结束时浏览器还会补一个 click，那一下会把刚框好的一片重置成单张
   if (suppressClick) return
-  if (_finePointer) { toggleSel(it.id); return }   // 桌面：单击=选中
-  openLightbox(it, i)                              // 触屏：单击=开灯箱
+  // V0.0.67：Ctrl/Shift 多选（对标任务列表，用户实测反馈）。修饰符现在能传进来了
+  // ——之前模板用 @click.exact，带修饰键的点击根本不触发。
+  if (_finePointer && (e && (e.shiftKey || e.ctrlKey || e.metaKey))) {
+    if (e.shiftKey && anchorIdx >= 0 && anchorIdx < items.value.length) {
+      // Shift：从锚点到当前，范围连选（保留已有选择，累加）
+      const [a, b] = [Math.min(anchorIdx, i), Math.max(anchorIdx, i)]
+      const n = new Set(selected.value)
+      for (let k = a; k <= b; k++) n.add(items.value[k].id)
+      selected.value = n
+    } else if (e.ctrlKey || e.metaKey) {
+      toggleSel(it.id)          // Ctrl：切换单张，追加/移除
+      anchorIdx = i
+    } else {
+      anchorIdx = i
+    }
+    return
+  }
+  if (_finePointer) { toggleSel(it.id); anchorIdx = i; return }  // 桌面：单击=选中
+  openLightbox(it, i)                                            // 触屏：单击=开灯箱
 }
 
 // ---------------- 框选（拖出一个矩形，框到哪张选哪张） ----------------
@@ -654,8 +813,18 @@ const tagBtn = computed(() => {
            text: tagImp.pending > 0 ? `识别这 ${fmtCnt(tagImp.pending)} 张` : '启动识别',
            off: false }
 })
+// 识别完成后：刷新待识别计数 + 重载列表（否则已加载卡片的「待识别」标记
+// 不会变成「已识别」，用户盯着页面看就像没变化）+ 恢复滚动进度。
+async function onTaggingFinished() {
+  if (props.view !== 'gallery') return
+  await reload()
+  await restoreProgress()
+}
 watch(() => tagImp.doneSeq, () => { refreshTagPending() })
-watch(() => tagImp.running, (v) => { if (!v) refreshTagPending() })
+// 只在「识别从运行中结束」这一个点重载，避免和 doneSeq 双重触发
+watch(() => tagImp.running, (v, old) => {
+  if (old === true && v === false) { refreshTagPending(); onTaggingFinished() }
+})
 
 // —— V0.0.12：批量重命名（桌面图库菜单同款，走 rename_ops 同一份实现）——
 const renameModal = ref(null)     // { ids, mode, value }
@@ -689,11 +858,16 @@ onMounted(async () => {
     const tg = await api.tags()
     tagList.value = (tg.items || []).map((x) => ({ tag: x.tag, n: x.n }))
   } catch { /* 拉不到就不显示标签下拉 */ }
-  load(false)
+  await load(false)
+  // V0.0.67：首批图片到位后恢复上次的滚动位置（各端各存各的 localStorage）
+  await restoreProgress()
   // V0.0.65：图库页挂载时查一次全库待识别数 —— 之前漏了初始刷新，
   // pending 一直停在 -1，顶部控件误显示「全部已识别」且按钮锁死。
   if (props.view === 'gallery') refreshTagPending()
   watchImages()
+  // V0.0.67：在滚动容器上记进度（main 的 scroll 不冒泡，直接挂容器）
+  scrollHost = gridEl.value?.closest('.main') || null
+  if (scrollHost) scrollHost.addEventListener('scroll', onScrollProgress, { passive: true })
   nextTick(() => {
     // V0.0.52：滚动容器是 <main class="main">，以前用默认视口判断哨兵，
     // 主区域滚到底了哨兵还被当成「可见」，会连着拉几十页。
@@ -721,6 +895,11 @@ onUnmounted(() => {
   unbindShell = []
   stopPlay()
   lockScroll(false)
+  // V0.0.67：解绑滚动进度监听 + 存最后一次位置 + 清节流定时器
+  if (scrollHost) { scrollHost.removeEventListener('scroll', onScrollProgress); scrollHost = null }
+  clearTimeout(scrollTimer)
+  saveProgress()
+  closeContextMenu()   // V0.0.67：离开视图时清掉可能残留的命令式菜单
 })
 
 function onKey(e) {
@@ -737,8 +916,9 @@ function onKey(e) {
   else { return }
   e.preventDefault?.()
 }
-watch(() => [props.view], () => {
-  reload()
+watch(() => [props.view], async () => {
+  await reload()            // V0.0.67：等首批数据到位
+  await restoreProgress()   // 再恢复该视图自己的滚动位置
   // V0.0.65：切回图库页时重查待识别数（组件复用不重触发 onMounted）
   if (props.view === 'gallery') refreshTagPending()
 })
@@ -1082,8 +1262,9 @@ const likeLabel = computed(() =>
         v-for="(it, i) in cols" :key="it.id"
         :data-id="it.id" draggable="false"
         class="cell" :class="{ picked: selected.has(it.id) }"
-        @click.exact="onCardClick(it, i)"
+        @click="onCardClick($event, it, i)"
         @dblclick.prevent="onCardDblClick(it, i)"
+        @mousedown="e => { if (e.button === 2) onCardContext(e, it) }"
         @contextmenu="onCardContext($event, it)">
         <!-- V0.0.52：真实地址放 data-src，由 watchImages 按视口决定何时装载 -->
         <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
@@ -1200,7 +1381,6 @@ const likeLabel = computed(() =>
     </div>
     </Teleport>
 
-    <ContextMenu :menu="ctx" @close="ctx = null" />
 
     <!-- 标签编辑（对齐老界面「加标签 / 删标签」） -->
     <Teleport to="body">
@@ -1325,6 +1505,8 @@ const likeLabel = computed(() =>
 </template>
 
 <style scoped>
+
+
 .viewwrap { display: grid; gap: 12px; }
 /* 左栏（任务/标签树）+ 右栏（工具条+图） */
 /* 2026-10-29（第 1 条）：侧栏撤掉后只剩一栏，gb 退化成普通纵向容器。
