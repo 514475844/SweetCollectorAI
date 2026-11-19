@@ -4183,7 +4183,7 @@ class _Handler(BaseHTTPRequestHandler):
             sql = (
                 "SELECT id, path, tags, score, blacklisted, in_quarantine, "
                 "needs_review, favorite, source_url, width, height, bytes, "
-                "collected_at, review_reason FROM images "
+                "collected_at, review_reason, ai_state FROM images "
                 f"WHERE {where} ORDER BY {order} LIMIT ?")
         else:
             off = cursor if cursor > 0 else 0
@@ -4191,7 +4191,7 @@ class _Handler(BaseHTTPRequestHandler):
             sql = (
                 "SELECT id, path, tags, score, blacklisted, in_quarantine, "
                 "needs_review, favorite, source_url, width, height, bytes, "
-                "collected_at, review_reason FROM images "
+                "collected_at, review_reason, ai_state FROM images "
                 f"WHERE {where} ORDER BY {order} LIMIT ? OFFSET ?")
         rows = self.db.query(sql, tuple(args))
         more = len(rows) > limit
@@ -4248,6 +4248,9 @@ class _Handler(BaseHTTPRequestHandler):
             "flag": flag,
             "score": r["score"],
             "favorite": bool(r["favorite"]),
+            # V0.0.63：AI 识别状态（0=待识别 / 1=已识别），图库卡片角标用
+            "ai": int(r["ai_state"] if "ai_state" in r.keys() and
+                      r["ai_state"] is not None else 1),
             # V0.0.8：待审核卡片显示「为什么被送进来」（写库时已翻成中文）。
             "reason": (str(r["review_reason"] or "")
                        if r["needs_review"]

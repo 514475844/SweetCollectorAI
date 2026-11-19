@@ -1078,9 +1078,16 @@ const likeLabel = computed(() =>
         <span v-if="semMode && it.sem_score != null" class="score">相似 {{ it.sem_score }}%</span>
         <span v-else-if="!semMode && it.score != null" class="score">{{ Math.round(it.score * 100) }}%</span>
         <span class="tick" @click.stop="toggleSel(it.id)" :class="{ on: selected.has(it.id) }">✓</span>
+        <!-- V0.0.63（用户拍板 A+D）：A = 右上角识别徽章（只标已识别，
+             待识别满屏问号太吵）；D = 文字行胶囊。紧贴勾选圈左侧，不冲突。 -->
+        <span v-if="it.ai === 1" class="ai-mark" title="已完成 AI 识别">✓</span>
         <figcaption>
           <span class="meta">{{ it.meta }}</span>
-          <span class="dim mono">{{ it.width }}×{{ it.height }} · {{ fmtSize(it.bytes) }}</span>
+          <span class="dim mono">{{ it.width }}×{{ it.height }} · {{ fmtSize(it.bytes) }}
+            <span class="ai-chip" :class="{ none: it.ai !== 1 }"
+                  :title="it.ai === 1 ? '已完成 AI 识别' : '尚未 AI 识别'">
+              {{ it.ai === 1 ? '✦ 已识别' : '✧ 待识别' }}</span>
+          </span>
           <!-- V0.0.8：待审核卡片显示「为什么被送进来」，审核页不再靠猜 -->
           <span v-if="it.reason" class="reason" :title="it.reason">{{ it.reason }}</span>
         </figcaption>
@@ -1425,6 +1432,22 @@ const likeLabel = computed(() =>
   font-size: 12px; color: transparent; cursor: pointer;
 }
 .tick.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+/* V0.0.63 方案A：已识别徽章（紫色圆点，贴在勾选圈左侧） */
+.ai-mark {
+  position: absolute; top: 8px; right: 33px; z-index: 2;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(109, 94, 252, .92); color: #fff;
+  font-size: 10px; font-weight: 700; display: grid; place-items: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25); pointer-events: auto;
+}
+/* V0.0.63 方案D：文字行胶囊（跟在尺寸行后；小图档文字行裁掉时靠 tooltip） */
+.ai-chip {
+  display: inline-flex; align-items: center; gap: 3px; margin-left: 4px;
+  padding: 0 6px; border-radius: 999px; font-size: 10px;
+  background: #efeaff; color: var(--brand); border: 1px solid #ddd6fb;
+  white-space: nowrap;
+}
+.ai-chip.none { background: #f2f1f6; color: var(--muted); border-color: #e6e4ee; }
 .sentinel { display: grid; place-items: center; padding: 14px; }
 
 .lb {
