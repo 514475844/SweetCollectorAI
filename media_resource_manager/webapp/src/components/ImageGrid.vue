@@ -1378,24 +1378,34 @@ const likeLabel = computed(() =>
 /* V0.0.62（用户）：最小窗口 1024 下所有控件都要看得见 —— 下拉按选中项文字
    自适应收窄、动作按钮退成纯图标（悬停有说明）、计数与「每页」字样隐藏；
    实在放不下就自动换到第二行（wrap），宁可两行也绝不裁切溢出。 */
+/* V0.0.66（用户，第 N 次强调）：「最新采集 / 全部图片 / 全部任务」这一行 ——
+   方向、分辨率、缩略图大小、AI 识别全部挤在同一行，按钮可缩小，最小窗口(1024)
+   下全都要看得见、不换行、不裁切。做法：整条工具栏 nowrap；下拉按选中文字自适应，
+   只留图标提示；搜索框压到极窄；批量按钮退成纯图标。 */
 @media (max-width: 1120px) {
-  /* V0.0.64（用户）：窄窗下筛选下拉各占一整行、动作按钮各占一整行，
-     不再左右两组交错换行（原来混排看着像"冲突"）。每行内部仍自动换行兜底。 */
-  .toolbar { gap: 6px; padding: 8px 10px; flex-direction: column; align-items: stretch; }
-  .toolbar .left { gap: 6px; min-width: 0; flex-wrap: wrap; flex: 1 1 auto; }
-  .toolbar .left select { width: auto; flex: 0 1 auto; max-width: 112px;
-    padding: 4px 4px 4px 6px; font-size: 12px; text-overflow: ellipsis; }
-  .toolbar .left select:nth-of-type(2) { width: auto; }
-  .toolbar .left select.tagsel { width: auto; }
-  .toolbar .left input { min-width: 90px; flex: 1 1 110px; padding: 4px 8px; font-size: 12px; }
-  .toolbar .right { gap: 6px; flex-wrap: wrap; flex: 0 1 auto; }
-  .toolbar .right .btn.sm { padding: 4px 6px; font-size: 12px; border-radius: 7px;
-    height: 26px; box-sizing: border-box; }
+  /* 第一行＝筛选（最新采集/全部图片/全部任务/标签/方向/分辨率/缩略图/识别），
+     强制 nowrap 全塞这一行；第二行＝批量动作按钮。这样用户要的「方向、分辨率、
+     小图大图和最新采集那几个在一行」成立，按钮又不至于把筛选挤出屏幕。 */
+  .toolbar { gap: 6px; padding: 7px 8px; flex-wrap: nowrap;
+    flex-direction: column; align-items: stretch; }
+  .toolbar .left { gap: 4px; min-width: 0; flex-wrap: nowrap; flex: 1 1 auto; }
+  /* 下拉按选中文字自适应，字号/padding 收紧到极限 */
+  .toolbar .left select { width: auto; flex: 0 0 auto; max-width: none;
+    padding: 3px 13px 3px 4px; font-size: 10.5px; }
+  .toolbar .left select:nth-of-type(2),
+  .toolbar .left select.tagsel,
+  .toolbar .left select.tasksel { width: auto; }
+  /* 搜索框压到极窄，靠 title/placeholder 说明用途 */
+  .toolbar .left input { min-width: 44px; width: 48px; flex: 0 1 48px;
+    padding: 3px 4px; font-size: 11px; }
+  .toolbar .right { gap: 5px; flex-wrap: nowrap; flex: 0 0 auto; }
+  .toolbar .right .btn.sm { padding: 3px 5px; font-size: 12px; border-radius: 7px;
+    height: 25px; box-sizing: border-box; }
   .toolbar .right .pagesize { font-size: 11px; }
   .toolbar .right .pagesize > span, .toolbar .right .counttxt { display: none; }
   /* 批量动作按钮只留图标（文字进 title），选中计数仍显示 */
   .toolbar .right .btn.sm .bt { display: none; }
-  .tagctl { padding: 2px 3px 2px 6px; gap: 4px; }
+  .tagctl { padding: 2px 3px 2px 5px; gap: 3px; }
   .tagctl .tagnum { display: none; }
 }
 /* V0.0.49：语义检索 —— 状态条、补算条 */

@@ -65,3 +65,30 @@ def test_pending_unknown_not_treated_as_all_done():
 def test_gallery_refreshes_pending_on_mount_and_view_switch():
     grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
     assert "if (props.view === 'gallery') refreshTagPending()" in grid,         "图库页挂载/切换时未刷新待识别数"
+
+
+# ── V0.0.66：筛选控件全挤第一行(nowrap) + 启动画面 logo+转圈 ──────────
+def test_filter_controls_all_on_one_row():
+    grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
+    seg = grid[grid.find("@media (max-width: 1120px)"):]
+    seg = seg[:seg.find("\n}")]
+    # left 区强制不换行，方向/分辨率/缩略图才能和最新采集挤同一行
+    assert ".toolbar .left" in seg and "flex-wrap: nowrap" in seg, \
+        "筛选区未强制单行 —— 方向/分辨率/缩略图会被挤到第二行"
+    assert "flex-direction: column" in seg, \
+        "工具栏应筛选一行、批量按钮一行"
+
+
+def test_splash_has_spinner_and_no_gradient_bar():
+    shell = _read("media_resource_manager/gui/web_shell.py")
+    fn = shell[shell.find("def _show_splash"):]
+    fn = fn[:fn.find("\ndef ")]
+    # 旋转圈：QTimer + drawArc + 深色描点
+    assert "QTimer" in fn and "drawArc" in fn, "启动画面没有旋转加载圈"
+    assert "QRectF(dot_x" in fn, "旋转圈缺少深色描点"
+    # 旧的顶部渐变带必须去掉
+    assert "QLinearGradient" not in fn and "品牌渐变细带" not in fn, \
+        "顶部那条渐变装饰带还在（用户说『上面有个条』）"
+    # logo 在上、转圈在下：logo y=46 < 圈 cy=182
+    assert "46, logo" in fn and "cx, cy, r = W // 2, 182" in fn, \
+        "logo 与转圈上下布局不对"
