@@ -130,14 +130,14 @@ def learn_from_imported(db, task_id: int, *, source: str = "local_library") -> d
     out["images"] = images
     if not images:
         out.update(ok=False, skipped=True,
-                   reason="这批图还没有标签，先打标签再学")
+                   reason="这批图还没有标签，先做 AI 识别再学")
         return out
 
     target = _target_weights(counts)
     out["labels"] = len(target)
     if not target:
         out.update(ok=False, skipped=True,
-                   reason="这批图没有可用标签，先打标签再学")
+                   reason="这批图没有可用标签，先做 AI 识别再学")
         return out
 
     key = _META_PREFIX + str(int(task_id))

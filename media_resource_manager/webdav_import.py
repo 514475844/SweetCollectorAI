@@ -205,7 +205,7 @@ def cache_dir_for(lib_dir: Path, url: str) -> Path:
 
 def import_webdav(db, cfg, url: str, *, user: str = "", password: str = "",
                   recursive: bool = True, do_tag: bool = True,
-                  copy_to_library: bool = False,
+                  copy_to_library: bool = False, mark_pending: bool = False,
                   stop: Optional[Callable[[], bool]] = None,
                   progress: Optional[Callable[..., None]] = None) -> dict:
     """枚举 → 下载 → 入库打标。返回结构与 :func:`import_folder.import_folder` 一致。"""
@@ -282,7 +282,7 @@ def import_webdav(db, cfg, url: str, *, user: str = "", password: str = "",
         progress(phase, dn, tt, name, eta, 30 + int(pct * 0.7))
 
     res = imp.import_folder(db, cfg, dest_root, force=False,
-                            do_tag=do_tag, stop=stop,
+                            do_tag=do_tag, mark_pending=mark_pending, stop=stop,
                             copy_to_library=copy_to_library,
                             recursive=True, progress=_map)
     if not res.get("ok"):

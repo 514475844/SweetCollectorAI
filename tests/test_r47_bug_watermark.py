@@ -17,6 +17,12 @@
 
 ⚠ 断言一律写「关系」不写「数值」：水印该多靠上取决于真机字体/DPI，
 写死坐标就是自己给自己埋一颗快照式定时炸弹（同一个错本项目犯过多次）。
+
+⚠ 2026-10-29（R233 适配）：水印已从「每页一个浮层」改成「左侧导航栏
+sidebar 单浮层」，本文件里钉「审核页/各页有独立子水印」的结构断言已过时
+（源码没变；同类 r50/r57 测试的处置见 docs/r246...md 第 36/40-42 行）。
+两条过时断言改为钉单浮层在 sidebar 上的「置顶 + 贴左贴底 + 不出可视区」，
+B2 像素主验收（test_watermark_visible_on_every_page）原样不动。
 """
 import pytest
 
@@ -124,14 +130,19 @@ def test_watermark_is_topmost_not_lowered(qapp):
     w, stack = _win(qapp)
     try:
         _settle(qapp, w, 1)          # 审核页（网格）
-        rt = w._review_tab
-        wm = next((m for m in w._watermarks if m.parentWidget() is rt), None)
-        assert wm is not None, "审核页没有独立水印浮层"
-        kids = [k for k in rt.children() if k.isWidgetType() and not k.isWindow()]
+        # R233 起水印只有一处，挂左侧导航栏 sidebar（跨页固定），不再给
+        # 每页（含审核页）各挂一个浮层。原断言找 review_tab 的子水印是按
+        # R47/R48 旧结构写的，已过时；见 docs/r246...md 第 36/40-42 行
+        # 「水印代码一个字没动，现状即正确」的同类处置。
+        wm = w._watermark
+        host = wm.parentWidget()
+        assert host is w.sidebar, (
+            f"水印应挂左侧导航栏（R233 单浮层），实际 host={type(host).__name__}")
+        kids = [k for k in host.children() if k.isWidgetType() and not k.isWindow()]
         # 用 `is` 扫下标：PySide6 的 `in`/`.index()` 会因 wrapper 身份不同
         # 误判「不在列表里」（实测踩过）。
         i_wm = next((i for i, k in enumerate(kids) if k is wm), -1)
-        assert i_wm >= 0, "水印不是审核页的子控件"
+        assert i_wm >= 0, "水印不是 host 的子控件"
         assert i_wm > 0, (
             "水印又在下标 0 —— 说明退回 lower() 了，B2 会复发")
     finally:
@@ -176,65 +187,42 @@ def test_watermark_does_not_eat_mouse_clicks(qapp):
 
 @pytest.mark.parametrize("ix", [0, 1, 2])
 def test_watermark_above_bottom_strip(qapp, ix):
-    """B1 主验收：水印底边必须**高于**页面那条贴底的横贯底栏。
+    """B1 精神延续 + R233 适配：水印必须留在 host 可视区内、贴底、不被缩小。
 
-    写关系不写数值：底栏有多高随字体/DPI 变，所以只断言
-    「水印底边 ≤ 底栏顶边」+「水印整体仍在可视区内」。
-
-    修复前 `_target_box()` 用 `host.height()` 当基准，水印压在底栏**下面**，
-    视觉上就是用户说的「低了 20px」。
+    R233 起水印只有一处，挂左侧导航栏 sidebar（R47/R48 时代是每页一个浮层、
+    还要避开页内那条横贯底栏）—— 原「水印底边 ≤ 页内底栏顶」判据的前提已
+    不存在：sidebar 没有那条底栏，水印由 `_place()` 贴 sidebar 底（见已适配的
+    `test_r57_watermark_overlay_geometry.py::test_mainwindow_watermark_is_not_fullwindow`）。
+    这里改成钉「在 host 内 + 贴左 + 贴底 + 尺寸合理」，语义仍是 B1 的
+    「不许跑出可视区 / 不许被 _content_bottom 缩成一点」。
     """
+    from media_resource_manager.gui import watermark as W
+
     w, stack = _win(qapp)
     try:
         _settle(qapp, w, ix)
-        page = stack.widget(ix)
-        host_h = page.height()
-
-        # 找出这一页贴底的横贯薄底栏（高 <=40、宽 >= 一半、贴底 <=40）
-        from PySide6.QtCore import QPoint, QRect
-        from PySide6.QtWidgets import QWidget
-        from media_resource_manager.gui.watermark import _STRUCTURAL
-
-        bars = []
-        for ch in page.findChildren(QWidget):
-            if ch is wm_of(page, w) or ch.isWindow() or isinstance(ch, _STRUCTURAL):
-                continue
-            try:
-                if not ch.isVisible():
-                    continue
-                r = QRect(ch.mapTo(page, QPoint(0, 0)), ch.size())
-            except (RuntimeError, TypeError):
-                continue
-            if (r.width() >= page.width() / 2 and 0 < r.height() <= 40
-                    and 0 <= r.y() and r.y() + r.height() <= host_h
-                    and host_h - (r.y() + r.height()) <= 40):
-                bars.append(r)
-        if not bars:
-            pytest.skip("本页没有贴底薄底栏，B1 无从判起")
-
-        bar_top = min(r.y() for r in bars)
-        wm = wm_of(page, w)
-        assert wm is not None, f"页{ix} 没有水印浮层"
+        wm = w._watermark
+        host = wm.parentWidget()
+        assert host is w.sidebar, (
+            f"水印应挂左侧导航栏（R233 单浮层），实际 host={type(host).__name__}")
         g = wm.geometry()
-        assert g.y() + g.height() <= bar_top + 1, (
-            f"页{ix} 水印压在底栏下面了：底边={g.y()+g.height()} > 底栏顶={bar_top}"
-            f"（这就是用户说的「向下偏移 20px」）")
+        host_h, host_w = host.height(), host.width()
         # 水印必须整个还在可视区内（不能为了避底栏自己跑出屏）
+        assert 0 <= g.x() and g.x() + g.width() <= host_w, (
+            f"页{ix} 水印横向跑出 sidebar：{g.getRect()} sidebar宽={host_w}")
         assert 0 <= g.y() and g.y() + g.height() <= host_h, (
-            f"页{ix} 水印跑出可视区了：{g.getRect()} host高={host_h}")
-        assert g.width() > 60 and g.height() > 60, (
+            f"页{ix} 水印纵向跑出 sidebar：{g.getRect()} sidebar高={host_h}")
+        # 贴左 + 贴底（R48-A1 的「左下角」语义，R233 后落到 sidebar）
+        assert abs(g.x() - W.INSET) <= 2, (
+            f"页{ix} 水印没贴 sidebar 左边：x={g.x()}（INSET={W.INSET}）")
+        assert 0 <= host_h - (g.y() + g.height()) <= W.INSET + 2, (
+            f"页{ix} 水印没贴 sidebar 底：底距={host_h - (g.y()+g.height())}")
+        # 竖条分支宽可以很窄，但高必须够（旧断言 width>60 对竖条不适用）
+        assert g.height() > 60, (
             f"页{ix} 水印被缩得过小（多半是 _content_bottom 判错了）：{g.getRect()}")
     finally:
         w.close()
         qapp.setStyleSheet("")
-
-
-def wm_of(page, w):
-    """挂在 page（或其自身）上的那张水印。"""
-    for wm in getattr(w, "_watermarks", []):
-        if wm.parentWidget() is page:
-            return wm
-    return w._watermark if w._watermark.parentWidget() is page else None
 
 
 def test_content_bottom_ignores_structural_and_scrolled(qapp):

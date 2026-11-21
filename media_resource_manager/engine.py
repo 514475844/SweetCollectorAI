@@ -339,6 +339,10 @@ def _hit_blacklist(url: str, tags: list[str], blacklist: list[str],
                 # V0.0.6：以前拿**没小写**的原规则去搜已经全小写的文字，
                 # 用户填 Doraemon* 或 /SlamDunk/ 永远不命中、静默失效。
                 pat = rlow.strip("/").replace("*", ".*")
+                if not pat:
+                    # V0.0.78：规则 "//" strip 后是空串，re.search("", blob)
+                    # 恒真 → 全部图片被判黑名单命中。空正则直接跳过。
+                    continue
                 if re.search(pat, blob, re.IGNORECASE):
                     return True
             except re.error as e:
@@ -408,6 +412,8 @@ class Engine:
         # V0.0.4：这次任务「要找什么 / 别找什么」的词表（手填 + 学到的）。
         # run() 一开始就算好，两条采集路径共用，避免快路径把词丢了。
         self._terms = None
+        # V0.0.77：口味库指纹，运行中热更新词表用（None = 还没记初始版本）
+        self._taste_ver = None
         # V0.0.7：纠错反馈的软排除词 + 中文词→模型标签反查表。放在这里
         # 初始化，保证 _prepare_ai 没跑过（例如老测试直接调 _apply_ai）时
         # 也不会 AttributeError。
@@ -545,6 +551,53 @@ class Engine:
             self._ex.shutdown(wait=wait)
         except Exception:
             pass
+
+    def _taste_version(self) -> tuple:
+        """口味库 + 反馈账本的轻量指纹。用来判断运行中词表是否变了。
+
+        V0.0.77：用户定稿"白名单/黑名单增量加入后立即生效，任务中也生效"。
+        以前词表在 run() 开头 collect 一次就冻结，运行中用户加的词要等下一
+        任务。这里用一次极轻的聚合查询（preferences 只有几十行）当版本号，
+        _process_image 每张图比一次——变了就重读词表并重建分类器。成本可忽略。
+        """
+        try:
+            r = self.db.query(
+                "SELECT COUNT(*) AS n, COALESCE(SUM(weight),0) AS w "
+                "FROM preferences WHERE task_id=0")
+            pref = (int(r[0]["n"]), round(float(r[0]["w"]), 4)) if r else (0, 0.0)
+        except Exception:  # noqa: BLE001
+            pref = (-1, 0.0)
+        try:
+            fb = self.db.meta_get("feedback_avoid.v1", "") or ""
+        except Exception:  # noqa: BLE001
+            fb = ""
+        return pref + (hash(fb),)
+
+    def _refresh_terms(self, task) -> bool:
+        """词表脏了就重读。返回是否真的刷新了。"""
+        try:
+            ver = self._taste_version()
+        except Exception:  # noqa: BLE001
+            return False
+        if getattr(self, "_taste_ver", None) == ver:
+            return False
+        # 第一次：run() 已 collect 过，只记版本号，不重复 collect
+        if getattr(self, "_taste_ver", None) is None:
+            self._taste_ver = ver
+            return False
+        try:
+            fresh = _find.collect(self.db, task, self.cfg)
+            fresh.avoid = list(dict.fromkeys(
+                list(fresh.avoid) + self._blacklist_rules(task)))
+            self._terms = fresh
+            self._taste_ver = ver
+            # 强制 _prepare_ai 重建分类器（marker 会因新词表变化）
+            LOG.info("口味库已变化，运行中热更新词表: 要找=%s 别找=%s",
+                     fresh.want[:8], fresh.avoid[:8])
+            return True
+        except Exception as e:  # noqa: BLE001
+            LOG.warning("热更新词表失败（沿用旧词表）: %s", e)
+            return False
 
     def _in_allowed_hours(self, task) -> bool:
         """#22 允许时段：留空 / 首尾相同 = 全天；支持跨午夜如 "22-6"。"""
@@ -713,6 +766,11 @@ class Engine:
         # 保证任何一条采集路径都不会漏掉用户刚加的全局黑名单。
         self._terms.avoid = list(dict.fromkeys(
             list(self._terms.avoid) + self._blacklist_rules(task)))
+        # V0.0.77：记下本任务起始的口味库版本，之后每张图比一次实现热更新
+        try:
+            self._taste_ver = self._taste_version()
+        except Exception:  # noqa: BLE001
+            self._taste_ver = None
         LOG.info("▶ 开始任务 #%s 入口=%s 适配器=%s | %s",
                   task_id, task.entry_urls, task.adapter_name or "(自动)",
                   self._terms.describe())
@@ -1079,6 +1137,12 @@ class Engine:
         fetcher = self._make_fetcher(task, rule, self._resolve_proxy(task))
         dl = self._make_downloader(task, fetcher)
         rep = RunReport(task_id=task_id)
+        # V0.0.78：重试路径每次新建 Engine，_clf/_excl_clf/_pref_alias 全空；
+        # _process_image 里的 _refresh_terms 首次只记口味库版本就返回 False，
+        # 不会补建分类器 —— 结果 _ai_excluded 恒 pass、_apply_ai 恒 keep，
+        # 重试的 AI 过滤整条失效。这里显式准备一次（marker 幂等，不会重复
+        # 加载模型），与 run() 的快路径 / 自研路径口径对齐。
+        self._prepare_ai(task, rep)
         succeeded: list[str] = []
         still_failed: list[str] = []
         filtered: list[str] = []
@@ -1208,6 +1272,11 @@ class Engine:
         if not self._in_allowed_hours(task):
             rep.hours_skipped += 1
             return
+        # V0.0.77：口味库/黑名单运行中增量加入立即生效——每张图比一次指纹，
+        # 变了就热更新词表 + 重建分类器；没变就零开销跳过。
+        if self._refresh_terms(task):
+            self._ai_ready_for = None
+            self._prepare_ai(task, rep)
         await self._rate_wait(task)
         # 下载前先过滤：把能看到的文字（图片网址、相册名、来源页标题）
         # 一起跟「别找什么」比一遍。以前只认图片网址里有没有那几个字，
@@ -1486,9 +1555,16 @@ class Engine:
             except asyncio.CancelledError:
                 # 用户停止任务：终止 gallery-dl 子进程后再传播取消
                 be.stop()
-                self.db.execute(
-                    "UPDATE tasks SET status='stopped', "
-                    "updated_at=datetime('now') WHERE id=?", (task.id,))
+                # V0.0.78：关窗口流程是「先停队列 → 再 db.close()」，走到这里
+                # 库可能已关；再写 status='stopped' 会抛 "closed database"，
+                # 被 queue.py 的宽 except 吞掉后任务被误记 ERROR 而非 STOPPED。
+                # 照搬 BFS 路径（run() 收尾）的 is_closed 自查写法。
+                if self.db.is_closed():
+                    LOG.warning("⚠ 数据库已关闭，跳过停止状态写库")
+                else:
+                    self.db.execute(
+                        "UPDATE tasks SET status='stopped', "
+                        "updated_at=datetime('now') WHERE id=?", (task.id,))
                 raise
         rep.elapsed = time.monotonic() - t0
         # r37：快路径是 gallery-dl 自己落盘的（不走 Downloader），设置里的
@@ -1505,6 +1581,13 @@ class Engine:
                              dest, _n, _bad)
         except Exception as e:
             LOG.warning("convert_to_jpg 扫描失败（不影响采集）: %s", e)
+        # V0.0.78：同 BFS 路径收尾的 is_closed 自查（关窗口时库先关）。
+        # 库已关就别再写 status='done'，否则抛错被 queue.py 宽 except 吞成
+        # ERROR，用户看到的是「任务失败」而不是干净的提前收工。
+        if self.db.is_closed():
+            rep.errors.append("数据库已关闭，本次任务未能正常收尾")
+            LOG.warning("⚠ 数据库已关闭，跳过任务收尾写库")
+            return rep
         self.db.execute("UPDATE tasks SET status='done', updated_at=datetime('now') "
                         "WHERE id=?", (task.id,))
         self.db.audit("engine", "run(gallery-dl)", str(task.id),
@@ -1635,6 +1718,15 @@ class Engine:
                     self.db.audit("dedup", "ledger-only", str(f),
                                   f"账本已有 #{dup_id}")
                     continue
+                # V0.0.78：快路径也要像 _process_image 那样做运行中词表热更新。
+                # V0.0.77 的「白/黑名单增量加入后立即生效」原来只长在
+                # _process_image（自研爬虫），粘网址建任务走的 gallery-dl
+                # 快路径完全没接，用户运行中加的词要等下一任务才生效。
+                # _refresh_terms 内部只有一次轻量指纹查询；只有词表真变了才
+                # 重建分类器，没变就零开销跳过 —— 不会每张图重算昂贵模型。
+                if self._refresh_terms(task):
+                    self._ai_ready_for = None
+                    self._prepare_ai(task, rep)
                 # 内容级黑名单（黑白照等）→ 早期拦截进审核
                 # R152-C6：这里以前只拿 task.blacklist ⇒ 全局黑名单对快路径
                 # （gallery-dl 这一支）完全无效，用户勾了"全局"照样下回来。

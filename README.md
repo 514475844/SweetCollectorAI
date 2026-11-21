@@ -1,146 +1,175 @@
-# Sweet 采集 AI 版
+# Media Resource Manager
 
-<p align="center">
-  <img src="docs/assets/screenshot-home.png" alt="Sweet 采集 AI 版界面" width="820">
-</p>
+本地优先、合规优先的**多级目录媒体发现与图库管理**工具。两条下载路径，自动选择：
 
-**本地优先的网页图片采集与图库管理工具。**
+1. **gallery-dl（推荐主路径）**——直接调用成熟开源下载器，它已内置大量站点的多级相册发现、
+   原图挑选、重试、限速、代理、去重归档能力。我们不重复造轮子，只做编排。
+2. **自研通用采集器（降级路径）**——gallery-dl 没有提取器的自定义站点，走内置
+   BFS/DFS 递归发现 + 用户自定义适配器（CSS/XPath/正则）+ 并发断点续传下载。
 
-它把「从网站上把图收回来」做成一条可管的流水线：采集 → 去重 → 本地 AI 筛选 → 人工审核 → 入库 → 检索。所有图片和判断都留在你自己的电脑上，不上传任何内容。
+两条路径统一汇入：**去重(SHA256+pHash) → 黑名单 → 本地AI筛选 → SQLite 落库 → 运行报告**。
 
-- 两条采集路径自动选：成熟开源下载器 gallery-dl 走主路，自研通用采集器兜底自定义站点
-- 去重、AI 打分、偏好学习全部本地运行（CLIP ONNX，不联网）
-- 桌面窗口 + 手机浏览器同一套界面，数据库只有一个
-- 数据全部落在软件目录 `data/` 内，整目录拷走即可换机（Windows 便携版发布中，当前从源码运行）
-
----
-
-## 功能一览
-
-| 能力 | 说明 |
-| --- | --- |
-| 双路径采集 | gallery-dl 主路径 + 自研 BFS/DFS 递归发现降级路径，自动选择；自定义站点用 CSS / XPath / 正则适配器 |
-| 采集保护 | 可配置 robots.txt 检查；遇 401/403 自动暂停并给出原因，确认后可继续 |
-| 精确 + 感知去重 | SHA256 精确去重，pHash 感知去重（汉明距离 ≤ 6）；重复时保留最大那张，小的进隔离区不直接删 |
-| 本地 AI 筛选 | CLIP ONNX 本地推理，对主题词打分：高分入库、不确定进审核、低分进隔离；无模型时退化为不筛选，不误杀 |
-| 偏好学习 | 审核时「喜欢 / 不喜欢」累加主题词权重，用得越久判得越准；学到的排除词可一键写回任务黑名单 |
-| 审核队列 | 键盘单手判定（← 不喜欢 / → 喜欢 / Ctrl+Z 撤销），支持随机抽检、智能抽样 |
-| 图库与检索 | 缩略图网格、按任务/标签/站点/分数/分辨率筛选、结构化搜索语法、画面特征相似检索、批量操作 |
-| 多协议导入 | 本地文件夹、WebDAV、FTP / FTPS、SFTP、SMB；支持断点续导、只索引不复制 |
-| 代理与调度 | HTTP / HTTPS / SOCKS5 代理池自动选优、健康检查；优先级、并发、限速、允许时段、定时运行 |
-| 数据与备份 | SQLite 单一数据库、每日自动备份、完整备份包导出/恢复、备份同步目录、开机自启、托盘常驻 |
-| Web 访问 | 同一套界面在桌面窗口和浏览器里都能用，可限局域网访问、设登录密码；手机可添加到主屏幕 |
-| 诊断与维护 | 日志脱敏、文件完整性检查、磁盘预警、崩溃取证、诊断包导出 |
+> 合规底线：不绕过登录/付费墙/DRM/验证码/地理限制；不预置任何站点规则；
+> 采集前检查 robots.txt 并要求填写授权依据；AI 与去重全部本地运行，不上传数据。
 
 ---
 
-## 当前状态
+## EXE（双击即用，不用命令行）
 
-| | |
-| --- | --- |
-| ✅ 当前可用 | **源码运行**（下方方式一，Windows 一键脚本或手动 pip 安装）；Docker（Linux / NAS，见 `docker/` 说明） |
-| 🚧 暂未发布 | **Windows 便携版压缩包**——Releases 目前只有版本说明，可执行程序包在准备中，发布后本节会更新 |
-| ⚠️ 已知问题 | 本地 AI 模型文件（约 150 MB）未随源码入库，需首次使用时按提示获取；无模型时 AI 筛选自动降级，其余功能不受影响 |
-
-## 快速开始
-
-### 方式一：从源码运行（当前唯一完整可用方式）
-
-环境要求：**Python 3.11+**。
-
-**Windows 一键脚本**（自动检查 Python 版本、依赖、端口占用、数据目录写权限）：
-
-```bat
-start_gui.bat    # 桌面窗口版
-start_web.bat    # 无界面后台版，浏览器访问 http://127.0.0.1:8080
+```
+D:\Sweet采集AI版\dist\SweetWeb.exe
 ```
 
-首次运行会自动建虚拟环境并装依赖（约 2–5 分钟，视网速），之后每次直接秒开。
+- **双击桌面快捷方式「Sweet采集AI版」** → 打开 `SweetWeb.exe` 的内置窗口
+  网页界面（左侧导航、任务 / 图库 / 导入与导出等页面），无黑窗。
+  V0.0.36 起旧桌面 exe 已废除，交付目录里只有这一个可执行文件。
+- 也可以双击项目根目录的 **`run.bat`**（源码版启动）。
+- 桌面快捷方式在界面里一键创建：`设置 → 创建桌面快捷方式`（真 .lnk，
+  再点一次会问你是删掉还是保留）；带参数运行 `SweetWeb.exe` 可执行命令行子命令。
 
-**手动方式**（macOS / Linux 或想用已有虚拟环境的 Windows 用户）：
+> 完整的图文操作说明见 **[`docs/Sweet采集AI版使用文档.md`](docs/Sweet采集AI版使用文档.md)**。
+
+重新打包（改动代码后）：
 
 ```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-
-python mrm_app.py          # 桌面窗口版（内置浏览器界面）
-python mrm_web_app.py      # 同上，等价入口
-python -m media_resource_manager.headless   # 无界面，仅 Web 服务（浏览器访问 127.0.0.1:8080）
+"$PY" -m PyInstaller build/pyinstaller.spec --noconfirm \
+      --distpath D:/c/mrm_scratch_<时间戳>/dist \
+      --workpath D:/c/mrm_scratch_<时间戳>/build
+# 构建完再 cp -r 覆盖 dist/
 ```
 
-前端源码在 `media_resource_manager/webapp/`，改界面后重新构建（构建产物 `web/` 已随仓库带上，不装 Node.js 也能直接跑）：
+> 别在 `dist/` 原地打包：PyInstaller 的 COLLECT 会整目录删旧输出，会被系统删除守卫拦住。
+
+---
+
+## 界面功能
+
+**左栏（窄，Windows 风格）**：任务列表 + 运行选中 / 运行自动任务 / 暂停继续 /
+重试失败 / 刷新 / **开机自启开关** + 队列状态（运行/待跑/失败数）。
+
+**「任务」标签页**
+- **适配器下拉框**：自动列出 `rules/` 目录里已有的规则文件
+- **输出目录「浏览…」按钮**：弹目录选择器
+- **代理**：下拉选择已保存代理 + 「管理…」弹窗（增删/启停/健康检查）+「测试」按钮
+- 最大深度 / 并发 / 延迟 / **优先级** / 关键字 / 黑名单
+- **本地AI**：启用开关 + 主题词 + 阈值
+- 调度：自动运行（勾选后会被定时任务包含）
+- 新增 / 保存修改 / 删除任务
+
+**「图库」标签页**：缩略图网格、按标签/文件名/来源搜索、收藏、双击在资源管理器中定位文件。
+
+**「日志」标签页**：实时运行日志（含每个任务的下载/去重/AI过滤统计），可清空/导出。
+
+---
+
+## 代理（HTTP / HTTPS / SOCKS5）
 
 ```bash
-cd media_resource_manager/webapp
-npm install
-npm run build
+SweetWeb.exe proxy add --name office --scheme socks5 --host 127.0.0.1 --port 10808
+SweetWeb.exe proxy add --name corp --scheme http --host 10.0.0.1 --port 8080 --user bob --password secret
+SweetWeb.exe proxy list          # 密码自动打码
+SweetWeb.exe proxy check         # 连通性+延迟探测
+SweetWeb.exe proxy remove 2
 ```
 
-### 方式二：Windows 便携版（暂未发布）
+- 支持 **http / https / socks5**（httpx 不支持 socks4，会明确拒绝）
+- **多代理池**：按 失败次数 → 延迟 → 优先级 自动挑选；失败自动切换
+- **健康检查**：记录延迟与最近成功时间，连续失败 3 次自动停用
+- **按任务绑定**：任务可指定用哪个代理，或留空由池自动挑
+- 密码在日志/列表里一律打码
 
-便携版（one-folder 绿色压缩包）正在准备，发布后本节改为：下载 zip → 解压 → 双击 `SweetWeb.exe`，无需安装 Python。届时数据全在软件目录 `data/` 内，整目录拷走即可换机；**升级只覆盖程序文件，不要删 `data/`**。
+## 任务队列
 
-### 五分钟上手
+- **优先级**（1-9，小=先跑）、**并发数**可配置
+- 状态持久化到数据库：排队 / 运行 / 暂停 / 完成 / 失败（含失败原因）
+- **失败队列**：失败任务不会丢，点「重试失败」一键重跑
+- 批量入队用 `submit_many`，保证优先级真实生效（逐个提交会被 worker 抢跑）
 
-1. 打开软件（源码方式一走上面的启动脚本）
-2. 左侧「任务」→ 新建任务，至少填一个网址，建议填主题词
-3. 点保存，再点任务行的「运行」
-4. 底部日志看进度，左侧「图库」看结果
-5. 图库空不要急：先去「审核」放行，再去「隔离区」还原
+```bash
+SweetWeb.exe queue --concurrency 2      # 跑所有自动任务
+SweetWeb.exe serve --interval 3600      # 后台常驻，每小时补一次队列
+```
+
+## 本地 AI（已接进采集流程）
+
+下载后的每张图都会用本地 CLIP（ONNX，**不需要 torch**，完全离线）打分：
+
+- 打分结果写入数据库 `tags` / `score` 字段
+- 达不到阈值 → **移入隔离区**（可恢复，绝不删除）
+- 没装模型时不会误判，而是完全不做筛选（保住你的下载）
+
+模型位于 `%APPDATA%\media-resource-manager\models\clip\`（154MB），
+丢失可重下：`python tools/fetch_model.py --proxy http://127.0.0.1:10808`
+
+## 审核队列 / 统计 / SSIM / 导入导出 / 深色模式
+
+- **审核标签页**：隔离区图片逐张判断——喜欢 / 不喜欢 / 跳过 / 加入黑名单；
+  决策实时写入**本地偏好模型**（按任务存权重，界面底部可看当前权重），越用越准。
+- **统计标签页**：图库张数、磁盘占用、格式分布、任务分布、**重复率**、平均AI分、
+  失败任务及原因；一键导出 JSON 报告。
+- **图库「查找相似(SSIM)」**：本地聚类相似图，每组保留最大的一张，其余进隔离区（可恢复）。
+- **导入导出**：`tasks export/import`（JSON）、`export report/metadata`（JSON/CSV）；
+  GUI 里也有对应按钮。
+- **规则版本回滚**：每次导入适配器自动存版本，`rules list` / `rules rollback --name x --version N`。
+- **深色模式**：左栏「深色模式」按钮即时切换，配置持久化。
+- **完成通知**：任务跑完托盘气泡提醒。
+- **去重策略升级**：重复时**保留分辨率/体积最大的一张**，小的进隔离区，绝不直接删。
+
+## 图标与桌面快捷方式（软件内一键创建）
+
+- 应用图标（exe/窗口/托盘）：`media_resource_manager/resources/icon.ico`——
+  **把你自己的 favicon.ico 覆盖到这个路径，重新打包即全部生效**。
+- GUI 左栏「桌面快捷方式」按钮：一键在桌面创建/删除启动器。
+  > 说明：写真正的 .lnk 需要 WScript.Shell COM（本机安全策略禁止），且 .url 对
+  > 中文路径的百分号编码解析不了，所以用的是带 `chcp 65001` 的 .bat 启动器，双击即开、无黑窗常驻。
+
+## 开机自启
+
+GUI 点「开机自启」按钮切换，或命令行：
+
+```bash
+SweetWeb.exe autostart install   # 登录时启动后台调度
+SweetWeb.exe autostart status
+SweetWeb.exe autostart remove
+```
+
+实现方式是往「启动」文件夹放一个 .bat（免管理员、免 COM）。
+> 注意：原本想用 `schtasks.exe`，但被本机安全策略列入黑名单，故改用启动文件夹方案。
 
 ---
 
-## 技术栈
+## 环境
 
-Python 3.11+ · PySide6（Qt 6）· httpx · BeautifulSoup4 / lxml · SQLite · Pillow / imagehash · ONNX Runtime / OpenCV（本地 CLIP 推理）· Vue 3 / Vite（Web 界面）· PyInstaller（便携打包）· gallery-dl（采集后端）
-
-## 目录结构
-
-```
-SweetCollectorAI/
-├── media_resource_manager/   # 主程序包（采集、去重、分类、审核、Web 服务、界面）
-│   ├── webapp/               # Vue 3 前端源码
-│   ├── web/                  # 构建后的静态资源
-│   ├── resources/            # 图标与字标
-│   └── ...
-├── tests/                    # pytest 用例
-├── docs/                     # 文档与介绍页
-├── examples/                 # 适配器规则示例
-├── extension/                # 浏览器扩展（可选，用于回填站点 Cookie）
-├── build/                    # 打包配置
-└── build_nodel.py            # 打包脚本
+```bash
+PY=C:/Users/Admin/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 ```
 
-运行时数据全部落在软件目录的 `data/` 下：主数据库、配置、规则、本地模型、图库图片、待审核、隔离区、缩略图、日志。整目录拷走即可换机。
+已装：gallery-dl 1.32.13、Pillow、imagehash、scipy、opencv 5.0、onnxruntime 1.30、
+tokenizers、numpy、PySide6 6.11.2、httpx、bs4、lxml、PyYAML、loguru、socksio、pytest。
 
-## 使用边界
+> 本机 pip 默认清华源不可用，直连官方源仅 ~23 kB/s。**加代理后 ~7 MB/s**：
+> `"$PY" -m pip install -i https://pypi.org/simple --proxy http://127.0.0.1:10808 <包名>`
 
-这是一个通用的本地采集与图库管理工具，不预置任何站点规则，也不提供绕过网站保护措施的能力：
+## 验证
 
-- 不绕过登录、付费墙、DRM、验证码或地域限制
-- AI 与去重全部本地运行，不上传图片或文本
-- 使用者需自行对目标网站的服务条款与当地法规负责
+```bash
+"$PY" -m pytest -q                    # 145 passed
+"$PY" tools/selfcheck.py              # 12 项界面/流程自检
+"$PY" tools/verify_stream.py          # 流式下载端到端
+"$PY" tools/smoke.py                  # 多级发现→下载→去重→落库 → PASS
+"$PY" tools/test_queue.py             # 队列：优先级/并发/双任务 → PASS
+"$PY" tools/test_ai.py                # AI：打标签 + 阈值路由
+"$PY" tools/diag_gallery_issues.py    # 图库体检（只读）
+```
 
-## 关于作者
+> `tools/validate_adapters.py`、`tools/check_pictoa_regression.py` 需要**联网 + 代理**
+> （`http://127.0.0.1:10808`）；代理没开会直接连不上，这不是代码问题。
 
-由一个爱好者独立开发与维护，专注本地优先、自托管的个人工具。这个软件本体开源（MIT），配套的个人适配器规则不开源。
+## 已知限制
 
-**其他开源项目**
-
-| 项目 | 说明 |
-| --- | --- |
-| [SweetReader](https://github.com/514475844/SweetReader) | 自托管个人书库与阅读器，支持 EPUB / PDF / DOC / TXT 在线阅读、全文搜索、进度记忆 |
-| [SweetReader-Plugins](https://github.com/514475844/SweetReader-Plugins) | SweetReader 的插件集合 |
-
-**联系方式**：GitHub [514475844](https://github.com/514475844) · 邮箱 514475844@163.com
-
-问题反馈与功能建议欢迎通过 Issue 或邮件提出。
-
----
-
-## 许可
-
-MIT License — 详见 [LICENSE](LICENSE)。
-
-gallery-dl 等依赖各自遵循其原许可。
+- 无安装包（本机没装 Inno Setup），为便携文件夹版。
+- CLIP 模型未打进 exe，依赖 `%APPDATA%` 里那份。
+- 窗口固定大小、不可最大化/不可缩放、分隔条禁拖（刻意设计，防误拖）。
+- 任务表单里的「关键词 / 黑名单」输入框已移除，改用「本地AI 主题词 / 排除词」；
+  旧数据里的 `keywords` / `blacklist` 仍被引擎读取，导入老任务时注意。
+- 尚未做：统计仪表盘的 ETA / 失败原因分类、Web UI。

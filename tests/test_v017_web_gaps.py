@@ -206,11 +206,12 @@ def test_db_master_reuses_crypt_and_never_persists_echo():
     ("components/ShortcutsDialog.vue", ["桌面端键位（与 F1 说明对应）",
                                         "录键", "保存键位", "mrm-shortcuts"]),
     ("uiPrefs.js", ["WEB_HOTKEY_DEFAULTS", "matchWebAction", "setWebTheme"]),
-    # 2 新手引导：3 步遮罩 + 设置页重新运行 + localStorage 首次访问
+    # 2 新手引导：V0.0.75 重写为 4 步流程引导 + 设置页重新运行 + localStorage 首次访问
     ("App.vue", ["Onboarding", "mrm-skin"]),
     ("views/Settings.vue", ["rerunOnboarding", "重新运行新手引导"]),
-    ("components/Onboarding.vue", ["第 1 步 / 共 3 步", "第 2 步 / 共 3 步",
-                                   "第 3 步 / 共 3 步", "mrm.onboarding.done",
+    ("components/Onboarding.vue", ["第 1 步 / 共 4 步", "第 2 步 / 共 4 步",
+                                   "第 3 步 / 共 4 步", "第 4 步 / 共 4 步",
+                                   "mrm.onboarding.done",
                                    "mrm-onboarding"]),
     # 3 数据库主密码：type=password、绝不回显、设置按钮
     ("views/Settings.vue", ["<DbMaster", "启用后请在下方设置主密码"]),
@@ -259,10 +260,12 @@ NEW_COPY = {
         "桌面端快捷键对话框保存时会清理网页专用键位，请勿在两端交替修改。",
     ],
     "components/Onboarding.vue": [
-        "未匹配到时使用 gallery-dl 自动模式，支持大批站点。",
-        "AI 未配置时采集照常进行，仅不提供自动识别与过滤。",
-        # V0.0.55：第 3 步升级为可当场建任务（走收件口），文案随功能改判。
-        "在下面粘一个网址，选择「开始采集」立即建任务并运行。",
+        # V0.0.75：重写为 4 步流程（学图库 → 填网站 → 黑白名单 → 保存运行）
+        "未匹配的站点走 gallery-dl 通用模式，支持大批网站。",
+        "白名单（主题词）：仅保留画面命中这些词的图片，多个词以空格分隔。",
+        "黑名单（排除词）：命中这些词的图片不予收录。",
+        "确认以下信息，单击「保存并运行任务」立即开始采集。",
+        "是否已经收藏有本地图片库？",
     ],
     "components/DiskTrend.vue": ["近 7 日增长趋势",
                                  "暂无历史快照数据，趋势将在每日记录后呈现。"],

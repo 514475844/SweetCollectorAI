@@ -169,6 +169,13 @@ def test_real_pyspy_dump_actually_returns_a_stack():
             pytest.skip(
                 "本机安全策略清理了 py-spy.exe（包装清单里声明过、文件被外部删除）；"
                 "这不是工具路径配错。需要真抓栈时请临时放行该程序再跑本条")
+        if not declared and not shutil.which("py-spy"):
+            # 这个解释器根本没装 py-spy（无 dist-info、PATH 里也没有）——
+            # 是取证工具未安装，不是被测产品 nor 工具路径配错。挂死取证是
+            # 可选调试能力，缺依赖时跳过；需要时 pip install py-spy 即可。
+            pytest.skip(
+                "当前 venv 未安装 py-spy（可选取证工具），跳过真抓栈；"
+                "装上 py-spy 后本条会自动真跑")
         assert pyspy.exists(), (
             f"工具配置的 py-spy 不存在：{pyspy} —— 真挂死时取证必然抓不到东西")
 

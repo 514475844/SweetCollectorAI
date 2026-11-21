@@ -4639,7 +4639,7 @@ class MainWindow(QMainWindow):
         ip_wl = QLineEdit(
             ", ".join(str(x) for x in _wl)
             if isinstance(_wl, (list, tuple)) else str(_wl))
-        ip_wl.setPlaceholderText("逗号分隔，例如 192.168.1.100/24")
+        ip_wl.setPlaceholderText("逗号分隔，例如 192.168.1.0/24")
         sf.addRow("IP 白名单", ip_wl)
 
         trust = QCheckBox("信任反向代理")
@@ -14088,12 +14088,12 @@ class MainWindow(QMainWindow):
         _ql.addWidget(_cb_copy)
         # V0.0.7：网页端早就有这个勾，桌面端漏了 —— 决定清单明确要求
         # 「复制」和「只入库先不打标签」挨着放、两边同一个勾。
-        _cb_index_only = QCheckBox("只入库、先不打标签（大批量时先建立索引，"
-                                   "之后重新导入可补打标签并学习）")
+        _cb_index_only = QCheckBox("只入库、先不识别（大批量时先建立索引，"
+                                   "之后重新导入可补做识别并学习）")
         _cb_index_only.setToolTip(
             "未勾选：导入时自动识别图片并标注，同时从这批图片中学习偏好。\n"
             "勾选后：仅登记文件、不执行识别；之后重新导入同一目录并取消"
-            "勾选，即可自动补打标签，不会重复入库、不会重复复制、不会修改原图。")
+            "勾选，即可自动补做识别，不会重复入库、不会重复复制、不会修改原图。")
         _ql.addWidget(_cb_index_only)
         _bb = QHBoxLayout()
         _b_ok = QPushButton("开始导入"); _b_no = QPushButton("取消")
@@ -14789,6 +14789,15 @@ class MainWindow(QMainWindow):
         # r39d：先等后台 QThread 收工，再关库（它们的 run() 里直接读 self.db）。
         try:
             self._wait_bg_qthreads(budget=max(0.0, _left(8.0) / 1000.0))
+        except Exception:
+            pass
+        # V0.0.78：显式退出必须先停 Web 服务（与 toggle_web(False) 及
+        # web_shell._shutdown 同一写法）。否则 serve_forever 线程在 db.close()
+        # 之后仍继续查库，报 "Cannot operate on a closed database" 且遗留 socket。
+        try:
+            srv = getattr(self, "_web_server", None)
+            if srv is not None:
+                srv.stop()
         except Exception:
             pass
         try:

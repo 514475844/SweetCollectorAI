@@ -203,8 +203,15 @@ def _clashes_with_theme(word: str, theme_keys) -> bool:
         t = str(t or "").strip().lower()
         if not t:
             continue
-        if k == t or k in t or t in k:
+        if k == t:
             return True
+        # 子串匹配只用于「完整词/短语」之间（中文≥2 字、英文≥3 字母）：
+        # 主题 keywords 被切成单字时（如「好词」→「好」「词」），若允许单字
+        # 子串匹配，「坏词A」会因为含「词」被误判成冲突、反馈规则整条作废
+        # （V0.0.78 全量回归抓到的真回归）。短词只认完全相等。
+        if len(k) >= 2 and len(t) >= 2:
+            if k in t or t in k:
+                return True
     return False
 
 
@@ -273,8 +280,13 @@ def collect(db, task, cfg=None) -> FindTerms:
     _typed_keys = {w.lower() for w in typed}
     # 真撞上了就整条忽略：既不硬拦，也不送审核。用户亲手填的「要找什么」
     # 优先级最高，不该被模型一次误标反复拉去审核。
-    fb_hard = [w for w in fb_hard if w.lower() not in _typed_keys]
-    fb_soft = [w for w in fb_soft if w.lower() not in _typed_keys]
+    # V0.0.78：照搬 global_terms 的 _clashes_with_theme 部分重叠保护。
+    # 以前只比精确相等：主题「风景」、反馈学到「风景 插画」时不降级，
+    # feedback_auto_harden 一开就把「风景 插画」硬塞进「别找」→ 整个主题
+    # 被封死。只要反馈词与任一「要找」词互相包含，就整条作废。用 want
+    # （手填 + 学到的全部主题词）当判据，覆盖 global_terms 用 learned 的口径。
+    fb_hard = [w for w in fb_hard if not _clashes_with_theme(w, want)]
+    fb_soft = [w for w in fb_soft if not _clashes_with_theme(w, want)]
     # V0.0.56 影子模式：默认关掉「自动硬拦」——判退多次学到的词也只降级成
     # 观察词（送审核），不进下载前硬拦。只有用户在设置里显式打开
     # feedback_auto_harden=True 才恢复旧行为（判退≥2 次自动硬拦）。
@@ -308,8 +320,12 @@ def _word_hit(word: str, blob: str) -> bool:
         try:
             # V0.0.7：blob 已经转小写，用户写的正则里带大写字母时原来永远
             # 匹配不到（例如 /Cosplay/）。补上忽略大小写，跟文字比对同口径。
-            return bool(re.search(r.strip("/").replace("*", ".*"), blob,
-                                  re.IGNORECASE))
+            pat = r.strip("/").replace("*", ".*")
+            # V0.0.78：规则 "//" strip 后是空串，re.search("", blob) 恒真 →
+            # 任何图片都被判命中排除词。空正则直接跳过。
+            if not pat:
+                return False
+            return bool(re.search(pat, blob, re.IGNORECASE))
         except re.error:
             return False
     if r.isascii() and any(c.isalnum() for c in r):

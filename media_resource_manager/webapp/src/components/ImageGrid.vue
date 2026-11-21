@@ -28,6 +28,11 @@ const cursor = ref(0)
 const hasMore = ref(true)
 const loading = ref(false)
 const err = ref('')
+// V0.0.70：向上翻页 —— 滚到列表顶时加载「比当前第一张更新」的一批，
+// 让从深处恢复进度后还能一路往上翻回之前看过的图（此前只能往下）。
+const loadingPrev = ref(false)
+const noMorePrev = ref(false)
+let prevLock = false
 // V0.0.8：轻提示（判退后「学到了什么」等好消息不该和红字错误混用一个条）
 const toastMsg = ref('')
 let toastTimer = 0
@@ -97,8 +102,13 @@ function setPageSize(v) {
 //   · 这是「本机看图的口味」，跟 pageSize 一个性质，不进后端库、不跟任务走。
 // 存的是「锚点图片 id」而不是纯像素：图库会不断新增图片，纯 scrollTop 会因为
 // 前面插值而错位；按 id 找回那张图再对齐，新增图片也不会让进度跑偏。
-const PROGRESS_KEY = 'mrm.scroll_progress'   // { [view]: { id, idx, top, ts } }
-const RESTORE_MAX = 1200                     // 恢复时最多补载到多少张（内存保护）
+const PROGRESS_KEY = 'mrm.scroll_progress'   // { [view]: { id, idx, top, sort, ts } }
+// V0.0.69：深位置改为「锚图 cursor 直跳」，不再从头一页页补到 2 万张。
+// 只有在非 time 排序（走 offset、不能直接拿 id 当 cursor）时才退回补载，
+// 补载上限也按锚点 idx 动态决定，不再写死 1200 —— 那是「看到 2 万张后
+// 切回来一片空白、要手点几十次继续加载」的根因。
+const RESTORE_MAX = 1200                     // 补载兜底时的单轮步长参考（不再是总上限）
+const JUMP_MIN_IDX = 240                     // 锚图超过这个序号就走 cursor 直跳
 let restoringView = false                    // 切页/恢复窗口内不写进度，防路由清零误覆盖
 let scrollHost = null                        // 滚动宿主容器（挂/解绑 scroll 监听）
 function _readProgress() {
@@ -135,13 +145,18 @@ function saveProgress() {
   if (top < 8 && map[props.view]) return
   const anchor = topVisibleAnchor()
   if (!anchor && top < 1) return
-  map[props.view] = { id: anchor?.id || 0, idx: anchor?.idx ?? -1, top, ts: Date.now() }
+  map[props.view] = { id: anchor?.id || 0, idx: anchor?.idx ?? -1, top,
+                      sort: sort.value, ts: Date.now() }
   _writeProgress(map)
 }
 let scrollTimer = 0
 function onScrollProgress() {
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(saveProgress, 200)    // 节流：滚停下 200ms 才写一次
+  // V0.0.70：滚到接近顶部时向上翻一批（加载之前看过的图）。
+  // 恢复/直跳期间 restoringView=true，loadPrev 内部会跳过，互不干扰。
+  const main = scrollHost || gridEl.value?.closest('.main')
+  if (main && main.scrollTop < 240 && sort.value === 'time') loadPrev()
 }
 /** 定位到锚点图；成功返回 true。 */
 function _locateAnchor(p) {
@@ -171,54 +186,94 @@ function _progressTarget(p) {
   }
   return p.top > 0 ? p.top : -1
 }
-/** 按需补载到能覆盖锚图的位置（受上限约束）。返回是否还需要继续补。 */
+/**
+ * V0.0.69：锚图 cursor 直跳。time 排序走 `id < cursor` 键集分页，
+ * 把 cursor 设成「锚图 id + 1」就能一次请求拿到含锚图的那一批，
+ * 列表换成这一批、锚图落在很靠前的位置 —— 不必从头补载到 2 万张。
+ * 返回是否真的把锚图加载进来了。
+ */
+async function loadAtAnchor(p) {
+  if (!p.id || sort.value !== 'time') return false
+  try {
+    const qs = [q.value.trim(), tagFilter.value ? `tag:${tagFilter.value}` : '']
+      .filter(Boolean).join(' ')
+    const d = await api.view(props.view, {
+      limit: pageSize.value,
+      cursor: Number(p.id) + 1,          // id < cursor ⇒ 含锚图本身
+      sort: 'time',
+      q: qs,
+      task: taskFilter.value || '',
+      orient: orient.value,
+      res: res.value,
+      flag: flag.value,
+    })
+    const rows = d.items || []
+    if (!rows.some((r) => Number(r.id) === Number(p.id))) return false
+    items.value = rows                    // 列表直接换成锚图那批（前面上下文不保留）
+    noMorePrev.value = false              // V0.0.70：直跳后允许向上翻回之前的图
+    cursor.value = d.next_cursor || 0
+    hasMore.value = !!d.has_more
+    autoLimit.value = items.value.length  // 已加载量 = 上限，继续加载按钮状态正常
+    err.value = ''
+    await nextTick()
+    watchImages()
+    return true
+  } catch (e) {
+    err.value = e.message
+    return false
+  }
+}
+/** 按需补载（非 time 排序兜底）：上限按锚点 idx 动态给，不再写死 1200。 */
 async function _ensureAnchorLoaded(p) {
   if (!p.id || !gridEl.value) return
   if (gridEl.value.querySelector(`figure.cell[data-id="${p.id}"]`)) return
-  const want = Math.min(Math.max(p.idx || 0, 0), RESTORE_MAX)
+  const want = Math.max(p.idx || 0, 0)
   if (items.value.length <= want && hasMore.value && !loading.value
-      && items.value.length < RESTORE_MAX) {
+      && items.value.length < want + RESTORE_MAX) {
     autoLimit.value = items.value.length + AUTO_LIMIT
     await load(true)
     await nextTick()
   }
 }
+/** 定位到锚图并守护若干帧，抗路由清零 / 图片装载引起的高度变化。 */
+async function _settleAtAnchor(p) {
+  for (let g = 0; g < 8; g++) {
+    await nextTick()
+    const main = gridEl.value?.closest('.main')
+    if (!main) return
+    const t = _progressTarget(p)
+    if (t >= 0 && Math.abs(main.scrollTop - t) > 24) main.scrollTop = t
+    await new Promise((r) => setTimeout(r, 90))
+  }
+}
 /**
- * V0.0.67 恢复滚动位置（修实测无效）：
- * 首批只有 60 张，锚图常在更深处，且 App.vue 的路由 watch 会在页面切换时把
- * scrollTop 强制归零 —— 单帧恢复会被这两个因素打掉。改成多轮补载 + 定位 +
- * 短时守护：反复补载直到锚图出现，定位后连续几帧盯住，被清零就立刻重设。
+ * V0.0.69 恢复滚动位置（修「看到 2 万张后切回来要手点几十次」）：
+ *   · time 排序且锚图较深 → cursor 直跳，一次请求到锚图那批；
+ *   · 其余情况 → 补载定位，上限按锚点动态给；
+ * 定位后守护若干帧，全程锁住进度写入，避免中途滚动把锚点改写到错误位置。
  */
 async function restoreProgress() {
   const p = _readProgress()[props.view]
   if (!p) return
+  // 排序变了：光标语义不同，硬恢复会跳错地方，放弃
+  if (p.sort && p.sort !== sort.value) return
   restoringView = true
-  let done = false
   try {
-    for (let i = 0; i < 16 && !done; i++) {
-      await _ensureAnchorLoaded(p)     // 锚图不在就补一批
-      await nextTick()
-      const target = _progressTarget(p)
-      if (target >= 0) {
-        const main = gridEl.value?.closest('.main')
-        if (main) {
-          main.scrollTop = target
-          // 守护 6 帧（~0.6s）：路由 watch / 图片装载引起的高度变化会挪动位置，
-          // 发现被清零或大幅偏移就重设到锚图。
-          done = true
-          for (let g = 0; g < 6; g++) {
-            await new Promise((r) => setTimeout(r, 100))
-            const m = gridEl.value?.closest('.main')
-            if (!m) break
-            const t = _progressTarget(p)
-            if (t >= 0 && Math.abs(m.scrollTop - t) > 24) m.scrollTop = t
-          }
-        }
-      }
-      if (!done) await new Promise((r) => setTimeout(r, 120))
+    let anchored = false
+    if (p.id && sort.value === 'time' && (p.idx || 0) >= JUMP_MIN_IDX) {
+      anchored = await loadAtAnchor(p)     // 深位置：直跳
     }
+    if (!anchored) {
+      for (let i = 0; i < 24; i++) {
+        await _ensureAnchorLoaded(p)
+        await nextTick()
+        if (_progressTarget(p) >= 0) break
+        await new Promise((r) => setTimeout(r, 100))
+      }
+    }
+    await _settleAtAnchor(p)
   } finally {
-    setTimeout(() => { restoringView = false }, 400)
+    setTimeout(() => { restoringView = false }, 500)
   }
 }
 const selected = ref(new Set())
@@ -281,6 +336,7 @@ async function load(more = false) {
     })
     const rows = d.items || []
     items.value = more ? [...items.value, ...rows] : rows
+    if (!more) noMorePrev.value = false      // V0.0.70：从头加载后，向上翻重新可用
     cursor.value = d.next_cursor || 0
     hasMore.value = !!d.has_more
     err.value = ''
@@ -304,6 +360,55 @@ function reload() {
 function loadMoreManually() {
   autoLimit.value = items.value.length + AUTO_LIMIT
   load(true)
+}
+
+/**
+ * V0.0.70：向上翻页。拿当前列表头那张图的 id 当 before，
+ * 后端返回「比它更新、最靠近它」的一批（已按 id DESC 排好），
+ * unshift 到列表头。关键：加载后把 scrollTop 加上新增内容的高度，
+ * 视口才不会跳（否则用户正看的图会突然被顶下去）。
+ */
+async function loadPrev() {
+  if (prevLock || loadingPrev.value || noMorePrev.value || sort.value !== 'time') return
+  if (semMode.value || !items.value.length || restoringView) return
+  const firstId = Number(items.value[0].id)
+  if (!firstId) return
+  prevLock = true
+  loadingPrev.value = true
+  const main = gridEl.value?.closest('.main')
+  const oldH = main ? main.scrollHeight : 0
+  const oldTop = main ? main.scrollTop : 0
+  try {
+    const qs = [q.value.trim(), tagFilter.value ? `tag:${tagFilter.value}` : '']
+      .filter(Boolean).join(' ')
+    const d = await api.view(props.view, {
+      limit: pageSize.value, before: firstId, sort: 'time',
+      q: qs, task: taskFilter.value || '',
+      orient: orient.value, res: res.value, flag: flag.value,
+    })
+    const rows = d.items || []
+    if (!rows.length) {
+      noMorePrev.value = true
+      return
+    }
+    // 去重：只 unshift 列表里还没有的（边界极端情况可能重叠）
+    const have = new Set(items.value.map((r) => Number(r.id)))
+    const fresh = rows.filter((r) => !have.has(Number(r.id)))
+    if (!fresh.length) { noMorePrev.value = true; return }
+    items.value = [...fresh, ...items.value]
+    await nextTick()
+    watchImages()
+    // 保持视口：新增卡片把内容顶高了多少，就把滚动位置同步下移多少
+    if (main) {
+      const newH = main.scrollHeight
+      main.scrollTop = oldTop + Math.max(0, newH - oldH)
+    }
+  } catch (e) {
+    err.value = e.message
+  } finally {
+    loadingPrev.value = false
+    prevLock = false
+  }
 }
 
 /**

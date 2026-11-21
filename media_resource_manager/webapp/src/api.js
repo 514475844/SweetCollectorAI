@@ -195,6 +195,16 @@ export const api = {
   feedbackClear: () => req('/api/feedback/clear', { method: 'POST', body: {} }),
   findTerms: () => req('/api/find-terms'),
   learnAddTerm: (word) => req('/api/learn/add-term', { method: 'POST', body: { word } }),
+  // V0.0.71：AI 看图说词 → 勾选 → 写进口味库
+  autoVocabStart: (method, amount) => req('/api/autovocab/start',
+    { method: 'POST', body: { method, amount } }),
+  autoVocabJob: (id) => req('/api/autovocab/job?id=' + encodeURIComponent(id)),
+  // V0.0.76：随时停止扫描（已扫成果自动保留）+ 读取上次成果
+  autoVocabCancel: (id) => req('/api/autovocab/cancel',
+    { method: 'POST', body: { id } }),
+  autoVocabLast: () => req('/api/autovocab/last'),
+  autoVocabApply: (yes, no) => req('/api/autovocab/apply',
+    { method: 'POST', body: { yes, no } }),
 
   // R254：桌面系统集成（版本 / 开机自启 / 检查更新）
   sysIntegration: () => req('/api/system/integration', { timeout: 20000 }),

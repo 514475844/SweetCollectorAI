@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import asyncio
+import email.utils
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlsplit
@@ -69,6 +71,32 @@ def describe_socks_problem(url: Optional[str]) -> str:
     kind = "socks5" if not url else str(url).split("://", 1)[0].lower()
     return (f"{SOCKS_HINT_ZH}（当前代理类型 {kind}，"
             f"缺少的组件 socksio 未随程序安装）")
+
+
+def parse_retry_after(value, attempt: int) -> float:
+    """把 429 的 Retry-After 解析成秒数；任何异常都退 2**attempt。
+
+    RFC 7231 允许两种写法：delay-seconds（``"5"``）或 HTTP-date
+    （``"Wed, 21 Oct 2026 07:28:00 GMT"``，CDN 常见）。原来只做
+    ``float()``，遇到 HTTP-date 抛 ValueError 直接打断整个任务线程。
+    顺序：先试 float → 再试 HTTP-date 转相对秒 → 最后回退退避值，
+    整个解析放在 try 里兜底。
+    """
+    fallback = float(min(2 ** attempt, 30))
+    try:
+        raw = str(value).strip()
+        try:
+            return max(0.0, float(raw))
+        except (TypeError, ValueError):
+            dt = email.utils.parsedate_to_datetime(raw)
+            if dt is None:
+                return fallback
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            delta = (dt - datetime.now(dt.tzinfo)).total_seconds()
+            return max(0.0, delta)
+    except Exception:                              # noqa: BLE001 —— 绝不打断任务线程
+        return fallback
 
 
 class Fetcher:
@@ -455,7 +483,10 @@ class Fetcher:
                 await asyncio.sleep(min(2 ** attempt, 30))
                 continue
             if r.status_code == 429:
-                wait = float(r.headers.get("Retry-After", 2 ** attempt))
+                # HTTP-date 形式的 Retry-After 交给 parse_retry_after 兜住
+                # （原来 float() 会抛 ValueError 打断任务线程）。
+                wait = parse_retry_after(
+                    r.headers.get("Retry-After", 2 ** attempt), attempt)
                 await asyncio.sleep(min(wait, 120))
                 continue
             if r.status_code >= 400:

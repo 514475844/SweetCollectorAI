@@ -218,9 +218,19 @@ def test_download_verify_failure_is_actionable(monkeypatch, tmp_path):
 # ---------------- ④ 魔搭映射完整性 -------------------------------------
 
 
+# BLIP 看图说话用的是社区导出的「平铺 ONNX」文件（blip_vision_encoder.onnx
+# + blip_text_decoder.onnx 平铺在仓库根）。魔搭上的 BLIP ONNX 仓库是另一套
+# 拆分文件名（vision_model / text_decoder），对不上这几个文件；给它硬塞一个
+# ms 命名空间只会在 HF 挂掉时兜底下载到不存在的文件，比「明确跳过魔搭」更差。
+# 因此该模型有意不带 ms，mirror_urls() 会自动跳过魔搭那条兜底。
+_MS_OPTIONAL = frozenset({"blip-caption-base"})
+
+
 def test_every_catalog_model_has_ms_namespace():
-    """每个内置模型都要有魔搭命名空间，否则兜底链有个洞。"""
+    """每个内置模型都要有魔搭命名空间，否则兜底链有个洞（平铺 ONNX 例外）。"""
     for m in M.CATALOG:
+        if m["id"] in _MS_OPTIONAL:
+            continue
         assert m.get("ms"), f"{m['id']} 缺 ms 命名空间（魔搭兜底不可用）"
         assert "/" in m["ms"], f"{m['id']} 的 ms 不是 命名空间/模型名 形式"
 

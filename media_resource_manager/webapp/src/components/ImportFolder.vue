@@ -208,7 +208,7 @@ onMounted(refreshLast)
       <div v-if="!isNet" class="pathrow">
         <input v-model.trim="imp.folder" class="pathin" type="text"
                :disabled="busy" spellcheck="false"
-               placeholder="粘贴文件夹完整路径，例如 D:\图片 或 \\192.168.1.100\photo" />
+               placeholder="粘贴文件夹完整路径，例如 D:\图片 或 \\192.168.1.50\photo" />
         <button class="btn sm" :disabled="busy" @click="pickerOpen = true">
           <Icon name="folder-open" :size="13" />选择文件夹…</button>
       </div>
@@ -216,7 +216,7 @@ onMounted(refreshLast)
       <div v-else-if="isDav" class="pathrow">
         <input v-model.trim="imp.url" class="pathin" type="text"
                :disabled="busy" spellcheck="false"
-               placeholder="WebDAV 目录地址，例如 http://192.168.1.100:5005/photo/" />
+               placeholder="WebDAV 目录地址，例如 http://192.168.1.50:5005/photo/" />
         <input v-model.trim="imp.user" class="wd-sm" type="text" :disabled="busy"
                placeholder="账号（可不填）" autocomplete="off" />
         <input v-model="imp.pass" class="wd-sm" type="password" :disabled="busy"
@@ -245,7 +245,7 @@ onMounted(refreshLast)
       <p class="tip muted">
         <template v-if="!isNet">
           路径可以直接手打或粘贴。NAS / 共享盘填 UNC 地址（
-          <code>\\192.168.1.100\photo</code>），先在资源管理器里连一次并记住密码。
+          <code>\\192.168.1.50\photo</code>），先在资源管理器里连一次并记住密码。
         </template>
         <template v-else-if="isDav">
           只读取，不改动源站文件。图片会先下载到软件图库的 <code>webdav</code>

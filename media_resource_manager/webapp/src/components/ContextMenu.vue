@@ -14,10 +14,12 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 const box = ref(null)
+let openedAt = 0   // V0.0.67：菜单打开瞬间忽略关闭，防右键同一次事件把它秒关
 
 // 菜单可能超出视口 → 贴边翻转
 watch(() => props.menu, async (m) => {
   if (!m) return
+  openedAt = Date.now()   // V0.0.67：每次打开都刷新，忽略同一次右键事件的关闭
   await nextTick()
   const el = box.value
   if (!el) return
@@ -33,9 +35,17 @@ function iconOf(name) {
   return ICONS[name] ? name : (ALIASES[name] || '')
 }
 
-function onDocClick() { emit('close') }
+function onDocClick(e) {
+  // 右键弹菜单时，mousedown/contextmenu 的事件序列可能有一次冒泡到 document，
+  // 若立即 close 会把刚弹的菜单关掉（实测「选中了但菜单不弹」）。
+  // 打开后 120ms 内的 mousedown 一律忽略；之后正常点外部关闭。
+  if (e && e.button === 2) return              // 右键本身从不关闭菜单
+  if (Date.now() - openedAt < 120) return
+  emit('close')
+}
 function onEsc(e) { if (e.key === 'Escape') emit('close') }
 onMounted(() => {
+  openedAt = Date.now()
   document.addEventListener('mousedown', onDocClick)
   window.addEventListener('keydown', onEsc)
 })

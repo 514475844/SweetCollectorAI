@@ -59,7 +59,7 @@ def test_tag_stage_orders_by_id_and_only_pending():
 # ── 批1：SSRF 自保 ─────────────────────────────────────────
 def test_ssrf_blocks_metadata_allows_home_nets():
     from media_resource_manager.ssrf import check_url, SsrfBlocked
-    for u in ("http://192.168.1.100:8080/x", "http://127.0.0.1:8080",
+    for u in ("http://192.168.1.50:8080/x", "http://127.0.0.1:8080",
               "http://10.0.0.5/a", "http://172.20.3.4/b"):
         check_url(u)                    # 自家 NAS/路由器：必须放行
     for u in ("http://169.254.169.254/latest/meta-data",

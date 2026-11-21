@@ -210,6 +210,26 @@ CATALOG = [
         "vram": "8 GB 及以上发挥最佳",
         "input": 224,
     },
+    # ── V0.0.74：看图说话（描述模型），给「AI 自己造词」的 local 方式用。
+    #    不是 CLIP 那种"给词打分"，是真的对每张图生成一句英文描述，再拆词。
+    #    仓库是社区导出的现成 ONNX（blip_vision_encoder + blip_text_decoder
+    #    两个文件，平铺在根目录），本机没有 torch 环境也能跑。
+    #    ⚠ 无魔搭命名空间 → mirror_urls 会自动跳过魔搭，只走 hf-mirror→HF。
+    {
+        "id": "blip-caption-base",
+        "name": "BLIP 看图说话（AI 造词用）",
+        "repo": "https://huggingface.co/ningpp/blip-image-captioning-base-ONNX/resolve/main",
+        "files": ["config.json", "preprocessor_config.json", "vocab.txt",
+                  "blip_vision_encoder.onnx", "blip_text_decoder.onnx"],
+        "size_hint": "约 950 MB",
+        "note": "让 AI 自己看图说出画面里的词，不用先给它词表。体积较大、首次扫描较慢；有独立显卡会快一些，处理器也能跑，只是慢。仅供「AI 认识图库 → 扩词」功能使用。",
+        "backend": "local",
+        "pros": "AI 自由造词",
+        "min_cpu": "主流处理器即可（较慢）",
+        "min_gpu": "独立显卡明显加速",
+        "vram": "约 2 GB 即可",
+        "input": 384,
+    },
 ]
 
 #: R86 #51：界面上「4 档 CLIP」的展示顺序（默认包只带第一个）。

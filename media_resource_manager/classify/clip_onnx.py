@@ -9,11 +9,14 @@ tools/fetch_model.py); if it is absent, callers fall back to the stub tagger.
 """
 from __future__ import annotations
 
+import logging
 import threading
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
+
+LOG = logging.getLogger("mrm.clip_onnx")
 
 # CLIP normalization constants (OpenAI). Hardcoded to avoid config downloads.
 MEAN = np.array([0.48145466, 0.4578275, 0.40821073], dtype=np.float32)
@@ -146,6 +149,57 @@ class ClipONNX:
         # 整个进程被杀死（实测：5 并发必崩，闪退）。CPU 后端虽然线程安全，
         # 但统一加锁对两者都安全。所有 sess.run() 必须持此锁串行执行。
         self._run_lock = threading.Lock()
+        # V0.0.77：运行时降级所需的会话参数（_run 失败重建 CPU 会话用）
+        self._ort = ort
+        self._so = so
+        self._model_file = str(model_path)
+
+    def _run(self, feeds: dict):
+        """sess.run 统一入口（**持 _run_lock**）：运行时失败也自动降级 CPU。
+
+        建会话成功 ≠ 跑得动。量化 CLIP 的 MatMulIntegerToFloat 等算子在
+        DirectML 上会话能建、每张图执行才报 8007000E（实测 V0.0.77 真机
+        1000 张扫描 0 词、每 12 秒一条错误日志）。这种错重试也没用，
+        所以第一次撞上就直接永久重建为 CPU 会话（小模型 CPU 本就更快，
+        大模型慢一点也比全批白扫强），并记住不再回头。
+        ⚠ 所有 sess.run 必须且只能经由这里 —— 调用方不要再自己包锁。
+        """
+        with self._run_lock:
+            try:
+                return self.sess.run(None, feeds)
+            except Exception as e:
+                if self.provider == "CPUExecutionProvider":
+                    raise        # 已是 CPU，没得退，如实抛
+                # 只把「后端执行不了」的错误当降级信号。形状/batch/类型这类
+                # 输入问题换到 CPU 照样报错，不该白白把整个会话永久降级——
+                # 那种错要原样抛回给 encode_text 的 batch 回退分支自己处理。
+                if not self._is_backend_error(e):
+                    raise
+                LOG.warning("AI 后端 %s 运行时失败（%s），本会话永久降级 CPU",
+                            self.provider, type(e).__name__)
+                self.sess = self._ort.InferenceSession(
+                    self._model_file, self._so,
+                    providers=["CPUExecutionProvider"])
+                self.provider = "CPUExecutionProvider"
+                return self.sess.run(None, feeds)
+
+    @staticmethod
+    def _is_backend_error(e: Exception) -> bool:
+        """区分「DML 后端的算子/设备错误」与「输入形状/类型错误」。
+
+        真机实测量化 CLIP 在 DirectML 上报的是 RuntimeError，消息里带
+        MatMulIntegerToFloat / 8007000E / DML 之类关键词。用关键词 + 异常
+        类型双判：宁可保守地不降级（交给上层回退/报错），也不要把 batch
+        不一致这种可回退的输入问题误判成后端故障（那会污染缓存会话）。
+        """
+        text = f"{type(e).__name__} {e}".lower()
+        keys = ("matmulinteger", "8007000e", "dml", "directml",
+                "not implemented", "unsupported", "device", "provider",
+                "out of memory", "bad_alloc", "allocate")
+        if any(k in text for k in keys):
+            return True
+        # onnxruntime 的执行异常类型
+        return type(e).__name__ in ("OrtRunError", "OnnxRuntimeException")
 
     @staticmethod
     def _pick_providers(ort, gpu: bool = True,
@@ -234,8 +288,7 @@ class ClipONNX:
             bs = 1 if self._text_pixel_batch1 else len(texts)
             feeds["pixel_values"] = np.zeros((bs, 3, 224, 224), dtype=np.float32)
         try:
-            with self._run_lock:
-                out = self.sess.run(None, feeds)
+            out = self._run(feeds)
         except Exception:
             if not self._text_pixel_batch1:
                 raise
@@ -243,8 +296,7 @@ class ClipONNX:
             self._text_pixel_batch1 = False
             feeds["pixel_values"] = np.zeros((len(texts), 3, 224, 224),
                                              dtype=np.float32)
-            with self._run_lock:
-                out = self.sess.run(None, feeds)
+            out = self._run(feeds)
         emb = dict(zip(self.output_names, out))["text_embeds"]
         emb = emb / np.linalg.norm(emb, axis=-1, keepdims=True)
         with self._text_lock:
@@ -258,8 +310,7 @@ class ClipONNX:
         if "input_ids" in self.input_names:
             feeds["input_ids"] = np.zeros((1, 77), dtype=np.int64)
             feeds["attention_mask"] = np.zeros((1, 77), dtype=np.int64)
-        with self._run_lock:
-            out = self.sess.run(None, feeds)
+        out = self._run(feeds)
         emb = dict(zip(self.output_names, out))["image_embeds"]
         return emb / np.linalg.norm(emb, axis=-1, keepdims=True)
 

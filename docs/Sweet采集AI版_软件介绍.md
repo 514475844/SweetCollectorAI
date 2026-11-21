@@ -57,7 +57,7 @@
 ## 三、目录结构
 
 ```
-Sweet/                                  # 项目根（笔记本 <user-path>
+Sweet/                                  # 项目根（笔记本 C:\Users\admin\Sweet）
 ├── media_resource_manager/              # 主包
 │   ├── __main__.py / mrm_app.py         # 入口（CLI 子命令 + GUI 启动 + 崩溃取证）
 │   ├── config.py / models.py / db.py / repo.py / engine.py   # 配置/数据模型/数据库/仓储/引擎

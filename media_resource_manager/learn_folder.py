@@ -102,7 +102,7 @@ def learn_folder(db, cfg, folder: str, task_id: int | None = None,
     # V0.0.7：用户勾「只入库先不打标签」就是想先快点翻图，别为了一个
     # 用不上的模型去加载几百 MB 权重。
     if not do_tag:
-        ai_note = "本次只入库、未打标（标签为空是正常现象）"
+        ai_note = "本次只入库、未做 AI 识别（标签为空是正常现象）"
     else:
         try:
             from .classify.clip_model import LocalClassifier
@@ -122,7 +122,7 @@ def learn_folder(db, cfg, folder: str, task_id: int | None = None,
             # 与 engine._clf/_excl_clf 同待遇：非 clip 后端不打标，明说原因。
             if getattr(clf, "backend", "") != "clip":
                 ai_note = (f"本地 AI 处于降级模式（后端="
-                           f"{getattr(clf, 'backend', '?')}）；图片只入库、不打标签")
+                           f"{getattr(clf, 'backend', '?')}）；图片只入库、未做 AI 识别")
                 clf = None
         except Exception as e:
             clf = None
@@ -182,7 +182,7 @@ def learn_folder(db, cfg, folder: str, task_id: int | None = None,
                                 stats["added"] += 1
                         except Exception as e:
                             stats["errors"] += 1
-                            stats["last_error"] = f"{p.name}: 补打标失败: {e}"
+                            stats["last_error"] = f"{p.name}: 补做 AI 识别失败: {e}"
                         continue
                     stats["skipped_dup"] += 1
                     continue

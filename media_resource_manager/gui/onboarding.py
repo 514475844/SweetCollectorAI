@@ -140,7 +140,7 @@ class WizardDialog(QDialog):
         l2 = QVBoxLayout(p2)
         l2.addWidget(QLabel(
             "第 2 步 / 共 3 步：设置 AI（可跳过）与 Web 访问密码。\n"
-            "AI 不配置也能用——采集照常，只是没有自动打标/过滤。"))
+            "AI 不配置也能用——采集照常，只是没有自动识别/过滤。"))
         l2.addWidget(QLabel("AI 后端："))
         self.backend_combo = QComboBox()
         self.backend_combo.addItem("内置 CLIP（推荐，首次使用无需配置）", "builtin")
@@ -314,8 +314,14 @@ class WizardDialog(QDialog):
             changed["ai_api_model"] = cfg.ai_api_model
         pw = self.web_password_edit.text()
         if pw:
-            cfg.web_password = pw
-            changed["web_password"] = pw
+            # V0.0.78：密码框占位写着「至少 4 位」，与桌面 Web 设置对话框
+            # 保持一致的长度校验 —— 太短就不再静默写入（引导里密码是选填项）。
+            if len(pw) < 4:
+                QMessageBox.warning(
+                    self, "Web 密码太短", "Web 访问密码至少 4 位；本次未保存该密码。")
+            else:
+                cfg.web_password = pw
+                changed["web_password"] = pw
         return changed
 
     def _on_url_changed(self, _text):

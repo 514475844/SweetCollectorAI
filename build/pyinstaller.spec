@@ -1,6 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════════════
 # pyinstaller.spec — MediaResourceManager（Sweet采集AI版）onedir 打包
+# 当前版本 V0.0.78（护栏 test_v038_shell_polish::test_version_bumped 校验）
+# V0.0.36 废除旧桌面 exe（唯一入口 = SweetWeb，护栏 test_v036 校验）
 #
 # 用法（必须从项目根目录执行，或在 build_nodel.py 驱动下自动执行）：
 #   <venv-python> -m PyInstaller build/pyinstaller.spec --noconfirm \
@@ -12,42 +14,6 @@
 #   · 本站规则 data/rules 由 build_nodel.py 的 _deploy_rules 部署。
 #   · 资源 datas 目标路径与 resources.py / webui.py / models_lib.py 里
 #     的 _MEIPASS 解析一致，必须保持 `media_resource_manager/...` 前缀。
-# V0.0.53：关于页补全（软件介绍/版本/链接）；检查更新默认读 GitHub 最新 Release。
-# V0.0.54：适配器市场（订阅源/一键安装）；移除 AI 自动生成规则入口。
-# V0.0.55：打标断点修复；SSRF 保留段拦截；公众号规则本地化；批1 其他。
-# V0.0.56：批2 —— 审核类别原因落库；偏好学习影子模式（默认只排序不硬拦）；
-#          导出清单补来源/站点/采集时间；隔离区按保留期清理；合格线混淆矩阵+误判样例。
-# V0.0.57：收件口链接提取补齐中文标点结尾（微信真机分享「标题。链接。」不再挂标点）。
-# V0.0.58：所有模态弹窗 Teleport 到 body —— fixed 遮罩不再被过渡 transform 困住盖不住顶栏标题。
-# V0.0.59：按钮尺寸全站统一（删 13 处局部覆盖）；入库百分比改阶段口径；「换成这个」改书面语。
-# V0.0.60：AI 识别独立作业（独立进度/停止/锁），可与导入同时跑；全站「打标」改「AI 识别」。
-# V0.0.61：修复 DirectML 会话并发推理闪退（sess.run 全部持锁串行）；AI 识别卡挪到图库页。
-# V0.0.62：识别控件并入图库工具栏白框；删两处多余说明；窄窗控件全可见；结果卡识别入口改跳图库。
-# V0.0.63：图库卡片「已识别」标识（方案A右上角徽章+方案D文字行胶囊）；列表API补ai_state。
-# V0.0.64：识别控件图库页常驻（pending=0 不再隐藏）；窄窗工具栏上下分行；闪屏期间窗口挪屏外渲染、收尾挪回淡入。
-# V0.0.65：修复待识别数未初始刷新导致「全部已识别」误显示+启动按钮锁死。
-# V0.0.66：筛选控件全部挤进「最新采集」那一行(nowrap)；启动画面去渐变条、改 logo+旋转圈+深色描点。
-# V0.0.52：图库图片按视口装载、离屏释放；自动加载上限；内核缓存封顶 256 MB。
-# V0.0.51：导入勾选持久化与作业分离；Web 访问设置折叠；启动后自动恢复；
-#         备份同步页就地配置；模型库扩充（中文 CLIP / DINOv2-L）；
-#         适配器提示词复制与外部 AI 回填。
-# V0.0.35：导入子文件夹开关、切页进度不丢、灯箱独立舞台、全页表单间距统一。
-# V0.0.36：废除旧桌面 exe，唯一可执行体改为 SweetWeb.exe（Web 壳）。
-# V0.0.37：用户母版图标、自绘标题栏（彻底关闭 + 缩小到托盘）、限速时段表下拉。
-# V0.0.48：全站文案审计（模型门槛能力档 + 界面专业书面化 + 护栏扩充）。
-# V0.0.47：Web 访问设置说人话（允许局域网访问开关/删假登录账号/HTTPS归位）。
-# V0.0.46：搜索框「按意思找」语义搜索；启动画面满 3 秒；灯箱 Teleport；
-#         审核每页张数可调；.inline 全局间距。
-# V0.0.45：修「点开始导入毫无反应」；导入页三步重排 + 进度/结果卡；
-#         状态栏退出键常显红色胶囊；窗口 ✕ 改回收进托盘。
-# V0.0.44：导入支持手打路径（UNC/挂载盘）/ WebDAV 来源 / 断点续导提示。
-# V0.0.43：限速卡片内边距对齐同页其他卡片。
-# V0.0.42：时段表改真表格 + 扫码入口下线。
-# V0.0.41：限速状态条（现在/下次）+ AI 两页重写。
-# V0.0.40：AI 两页重写（去死开关、在线字段按来源显隐、模型页去术语）。
-# V0.0.39：改回系统标题栏；网页右下角「完全退出」（两步确认）。
-# V0.0.38：图标改侧栏字标原图、无边框窗口圆角、标题栏四键换 Iconify 线性图标、
-#         启动画面 + 主窗口淡入、侧栏子项只在任务页高亮、限速开关只留一处。
 # ══════════════════════════════════════════════════════════════════════
 import os
 import sys
@@ -89,14 +55,6 @@ hiddenimports = [
     "onnxruntime",
     "onnxruntime.capi._pybind_state",
     "tokenizers",
-    # V0.0.51：queue.start() 里函数内惰性导入的启动恢复模块
-    "media_resource_manager.startup_resume",
-    "media_resource_manager.rule_market",
-    "media_resource_manager.ssrf",
-    "media_resource_manager.inbox",
-        "media_resource_manager.tag_job",  # V0.0.60 独立识别作业（函数内惰性导入）
-    "media_resource_manager.powerdown",
-    "media_resource_manager.remote_import",
     # 纯 Python、函数内懒加载 —— PyInstaller 静态扫描抓不到，必须手列，
     # 否则打包后「源码跑好好的、exe 一用就炸」（2026-11-09 护栏测试抓出）：
     #   segno      → webui 扫码登录二维码（webui.py 内 from segno import make）
@@ -114,6 +72,9 @@ hiddenimports = [
     # V0.0.14：素材交付链路的五个模块都在函数内懒加载（桌面菜单与网页端点
     # 分别 import）。按上面同一条经验手列一次，避免「源码跑得好好的、exe
     # 一打开菜单/导出就报模块未找到」。
+    # V0.0.71：AI 看图说词模块，webui 里函数内 lazy import，静态扫描抓不到。
+    'media_resource_manager.auto_vocab',
+    'media_resource_manager.classify.blip_caption',
     'media_resource_manager.threshold_tune',
     'media_resource_manager.export_kit',
     'media_resource_manager.gui.subs_dialog',
@@ -139,6 +100,12 @@ hiddenimports = [
     # V0.0.19：系统级毛玻璃背板与现代化 QSS 也是函数内惰性导入。
     'media_resource_manager.gui.acrylic',
     'media_resource_manager.gui.modern',
+    # V0.0.78：远程导入 / SMB / 收件箱 —— 都是函数内惰性导入，静态扫描抓不到。
+    # 漏了就只在 exe 里表现为「远程导入/SMB 点了报模块未找到」。
+    'paramiko',
+    'smbprotocol',
+    'smbclient',
+    "media_resource_manager.inbox",
     ]
 
 # 收集 onnxruntime 的所有子模块，避免动态加载缺文件
@@ -164,12 +131,6 @@ try:
     from PyInstaller.utils.hooks import collect_submodules
     hiddenimports += collect_submodules("gallery_dl")
     hiddenimports += collect_submodules('gallery_dl.extractor')
-    # V0.0.49：网络协议导入（FTP/SFTP/SMB）全是函数内惰性导入，静态扫描抓不到。
-    # paramiko 的 crypto/nacl 后端、smbprotocol 的 connection/session 都得收。
-    hiddenimports += ["paramiko", "smbprotocol", "smbclient", "ftplib"]
-    hiddenimports += collect_submodules("paramiko")
-    hiddenimports += collect_submodules("smbprotocol")
-    hiddenimports += collect_submodules("smbclient")
 except Exception:
     pass
 
@@ -184,15 +145,10 @@ try:
 except Exception:
     pass
 
-# ── V0.0.36：只出 SweetWeb.exe ────────────────────────────────────────────
-# 用户定稿「废除旧的 exe，改用新版的 web 壳 exe」：从这一版起**不再构建**
-# MediaResourceManager.exe（老桌面 Qt 界面）。命令行能力没丢 ——
-# mrm_web_app.py 带参数时仍透传给 media_resource_manager.__main__ 的 CLI，
-# 所以 proxy / queue / serve / autostart 这些子命令用 SweetWeb.exe 一样能跑。
-# 只保留一个 Analysis，_internal 也只收这一份依赖，交付目录少一个 ~19MB exe。
-# ── Web 壳：SweetWeb.exe（双击直接进网页界面）──
-# V0.0.21：内置窗口的浏览器动作由 QtWebEngineCore 的页面/配置层接管，
-# 这些同样是函数内惰性导入，静态扫描抓不到，hiddenimports 里显式列出。
+# ── V0.0.36 起唯一可执行体：SweetWeb.exe（Web 壳，双击直接进网页界面）──
+# 旧桌面入口与旧 exe 已废除（护栏 test_v036 钉死），只用这一个 Analysis + EXE。
+# 内置窗口的浏览器动作由 QtWebEngineCore 的页面/配置层接管，这些同样是函数内
+# 惰性导入，hiddenimports 里已显式列出。
 a_web = Analysis(
     [str(ROOT / "mrm_web_app.py")],
     pathex=[str(ROOT)],
@@ -233,7 +189,5 @@ coll = COLLECT(
     a_web.datas,
     strip=False,
     upx=False,
-    # 目录名只是 PyInstaller 的内部产物层，build_nodel.py 会把它拍平；
-    # 交付目录里不会再出现任何名为 MediaResourceManager 的可执行文件。
     name="MediaResourceManager",
 )

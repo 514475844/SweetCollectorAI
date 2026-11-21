@@ -55,6 +55,26 @@ def update(jid: str, **kw) -> None:
             rec.update(kw)
 
 
+def cancel(jid: str) -> bool:
+    """请求停止某作业：置 cancel 位，由干活的人自己检查、自己收尾。
+
+    绝不硬杀线程（会锁死数据库、留下半截状态）。V0.0.76 起 autovocab 全库
+    扫描用这个：循环每张图之间检查 ``cancelled()``，停了也把已扫出的词落盘。
+    """
+    with _LOCK:
+        rec = _JOBS.get(str(jid or ""))
+        if rec is None or rec.get("state") != "running":
+            return False
+        rec["cancel"] = True
+        return True
+
+
+def cancelled(jid: str) -> bool:
+    with _LOCK:
+        rec = _JOBS.get(str(jid or ""))
+        return bool(rec and rec.get("cancel"))
+
+
 def get(jid: str):
     """取作业快照（拷贝，调用方随便改都不会污染内部状态）。"""
     with _LOCK:

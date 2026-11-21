@@ -130,10 +130,12 @@ def test_api_js_has_inbox_and_powerdown():
     assert "powerdown:" in a and "/api/powerdown" in a
 
 
-def test_onboarding_step3_creates_first_task():
-    """首启向导第 3 步：能真建任务（走收件口），不再是纯说明。"""
+def test_onboarding_final_step_creates_first_task():
+    """引导最后一步：能真建任务并起跑（V0.0.75 起走 taskSave+start，
+    取代旧收件口 inboxLink —— 因为新版要把白/黑名单一起带进任务）。"""
     o = (PKG / "webapp/src/components/Onboarding.vue").read_text(encoding="utf-8")
-    assert "api.inboxLink(" in o
-    assert "makeFirst" in o and "开始采集" in o
+    assert "api.taskSave(" in o
+    assert "api.taskCtl('start'" in o
+    assert "保存并运行任务" in o
     assert "useRouter" in o and "router.push('/tasks')" in o
 

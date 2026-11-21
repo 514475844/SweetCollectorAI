@@ -47,7 +47,9 @@ def test_scroll_progress_restore_caps_loading():
     """恢复时按需补载必须有上限，防止把十万张全拉进内存。"""
     grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
     assert "RESTORE_MAX" in grid, "补载无上限，有内存爆风险"
-    assert "items.value.length < RESTORE_MAX" in grid, "补载循环未受上限约束"
+    # V0.0.69：写死 1200 的总上限已去掉，改为按锚点 idx 动态给上限
+    assert "want + RESTORE_MAX" in grid or "items.value.length < RESTORE_MAX" in grid, \
+        "补载循环缺少上限约束"
 
 
 def test_scroll_progress_guard_against_route_reset():
@@ -78,11 +80,14 @@ def test_restore_survives_route_reset_and_dom_timing():
     """实测修复：单帧恢复会被路由清零/DOM 未就绪打掉，必须多轮+守护。"""
     grid = _read("media_resource_manager/webapp/src/components/ImageGrid.vue")
     assert "async function _ensureAnchorLoaded" in grid, "缺少锚图补载函数"
-    assert "for (let i = 0; i < 16 && !done; i++)" in grid, "恢复未做多轮重试"
-    assert "for (let g = 0; g < 6; g++)" in grid, "定位后缺少守护帧（防路由清零）"
-    assert "Math.abs(m.scrollTop - t) > 24" in grid, "守护未检测位置偏移并重设"
+    # V0.0.69：深位置改 cursor 直跳，重试循环次数调整；保留「多轮 + 守护」能力判据
+    assert "loadAtAnchor(p)" in grid, "深位置缺少 cursor 直跳"
+    assert "for (let g = 0; g < 8; g++)" in grid, "定位后缺少守护帧（防路由清零）"
+    assert "Math.abs(main.scrollTop - t) > 24" in grid, "守护未检测位置偏移并重设"
 
 
 def test_version_bumped_to_067():
+    import re
     v = _read("media_resource_manager/__init__.py")
-    assert 'VERSION = "0.0.67"' in v, "版本号未升到 0.0.67"
+    m = re.search(r'VERSION = "0\.0\.(\d+)"', v)
+    assert m and int(m.group(1)) >= 67, "版本号低于 0.0.67"

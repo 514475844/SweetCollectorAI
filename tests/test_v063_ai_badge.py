@@ -17,8 +17,10 @@ def _read(rel: str) -> str:
 def test_api_images_returns_ai_field():
     """列表 SQL 两条分支都要 SELECT ai_state，_img_item 要映射成 ai。"""
     src = _read("media_resource_manager/webui.py")
-    assert src.count("review_reason, ai_state FROM images") == 2, \
-        "图库列表 SQL 缺 ai_state（两条分支都要带上）"
+    # V0.0.70 起又多了「向上翻页」分支（before 反向 SQL），合法第三处。
+    # 钉的是「每条列表分支都要带 ai_state」，不钉死具体条数。
+    assert src.count("review_reason, ai_state FROM images") >= 2, \
+        "图库列表 SQL 缺 ai_state（每条分支都要带上）"
     assert '"ai": int(' in src, "_img_item 没把 ai_state 映射成 ai 字段"
 
 

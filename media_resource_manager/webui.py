@@ -1003,7 +1003,7 @@ def _split_word_list(value) -> list:
 
     复用 config.split_blacklist_words：按中英文逗号/顿号/分号/换行/竖线拆，
     去空白去重去引号。Web 前端常整串粘贴（中文逗号），老逻辑只按空白+英文
-    逗号拆会把"词A，词B，词C"当**一个**词存进去，消费侧永不命中。
+    逗号拆会把"颜射，老，黑女"当**一个**词存进去，消费侧永不命中。
     导入失败（纯 Web 环境异常）时退回本地拆分，不拖垮保存。
     """
     try:
@@ -2170,6 +2170,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(self._api_proxy_list())
             if path == "/api/learning":
                 return self._json(self._api_learning())
+            # V0.0.71：AI 看图说词 —— 扫描作业进度（起作业走 POST，这里只查）
+            if path == "/api/autovocab/job":
+                return self._json(self._api_autovocab_job(u))
+            if path == "/api/autovocab/last":
+                return self._json(self._api_autovocab_last())
             # V0.0.6：网页建任务表单顶部要显示「这回按什么词去找图」，
             # 与桌面端同一张词表（手填的 + 从导入图库学到的）。
             if path == "/api/find-terms":
@@ -2674,6 +2679,13 @@ class _Handler(BaseHTTPRequestHandler):
             # V0.0.7：手动加一个「要找」的词（与桌面看板「加词」同一口径）
             if path == "/api/learn/add-term":
                 return self._json(self._api_learn_add_term(self._body()))
+            # V0.0.71：AI 看图说词 —— 起扫描作业 / 应用勾选结果
+            if path == "/api/autovocab/start":
+                return self._json(self._api_autovocab_start(self._body()))
+            if path == "/api/autovocab/cancel":
+                return self._json(self._api_autovocab_cancel(self._body()))
+            if path == "/api/autovocab/apply":
+                return self._json(self._api_autovocab_apply(self._body()))
             # ---- R232：立即备份 / 每日备份开关 / 导入偏好 ----
             # ⚠ 同样**逐个显式列出**（理由见本函数上面几组）。
             # ⚠ 「每日自动备份」开关刻意**不进** /api/settings/save 的白名单：
@@ -3505,6 +3517,13 @@ class _Handler(BaseHTTPRequestHandler):
             cursor = int((q.get("cursor") or [""])[0])
         except ValueError:
             cursor = 0
+        # V0.0.70：向上翻页游标。给了 before（一个图片 id）时，返回「比它更新、
+        # 最靠近它的 limit 张」供前端 prepend 到列表头 —— 这样滚到很深再切回来，
+        # 能一路往上翻回之前看过的图。仅 time 排序有意义；0 = 不启用（老行为）。
+        try:
+            before = int((q.get("before") or [""])[0])
+        except ValueError:
+            before = 0
         # #36 排序 + #23 搜索：两个参数对非图片视图被忽略（那些视图自己
         # 渲染，不走 _api_images），只有图库类四视图会真用上。
         sort = _norm_sort((q.get("sort") or [""])[0])
@@ -3541,7 +3560,7 @@ class _Handler(BaseHTTPRequestHandler):
             return self._api_adapters()
         return self._api_images(view, cursor, limit, sort=sort, q=kw,
                                task_id=task_flt, orient=orient, res=res,
-                               flag=flag)
+                               flag=flag, before=before)
 
     def _api_adapters(self) -> dict:
         """R50：适配器视图 = 真读 rules 目录，复用桌面端同一个 `load_adapter`。
@@ -4074,7 +4093,7 @@ class _Handler(BaseHTTPRequestHandler):
                     sort: str = "time", q: str = "",
                     task_id: int = 0,
                     orient: str = "", res: str = "",
-                    flag: str = "") -> dict:
+                    flag: str = "", before: int = 0) -> dict:
         """图库类视图的统一分页实现（#36 排序 / #23 搜索）。
 
         ⚠ **time 排序一律带 ``id<cursor``**：无限加载靠的是"上次最后一张的 id"，
@@ -4175,8 +4194,10 @@ class _Handler(BaseHTTPRequestHandler):
         from .search import orient_res_where
         where += orient_res_where(orient, res)
         order = _SORTS[_norm_sort(sort)]
+        _is_time = _norm_sort(sort) == "time"
+        _up = bool(before and before > 0 and _is_time)   # V0.0.70：向上翻页
         # 多取一条用来判断"还有没有下一页"，不多返回给前端。
-        if _norm_sort(sort) == "time":
+        if _is_time and not _up:
             where += " AND id<?"
             args.append(cursor if cursor > 0 else 1 << 62)
             args.append(limit + 1)
@@ -4185,6 +4206,18 @@ class _Handler(BaseHTTPRequestHandler):
                 "needs_review, favorite, source_url, width, height, bytes, "
                 "collected_at, review_reason, ai_state FROM images "
                 f"WHERE {where} ORDER BY {order} LIMIT ?")
+        elif _up:
+            # 向上翻：取「比 before 新、且最靠近 before」的 limit 张。
+            # ORDER BY id ASC 先拿到紧贴 before 的那批，取出来后**反转**成
+            # id DESC（与列表同序），前端才能直接 unshift 到列表头不倒序。
+            where += " AND id>?"
+            args.append(int(before))
+            args.append(limit + 1)
+            sql = (
+                "SELECT id, path, tags, score, blacklisted, in_quarantine, "
+                "needs_review, favorite, source_url, width, height, bytes, "
+                "collected_at, review_reason, ai_state FROM images "
+                "WHERE " + where + " ORDER BY id ASC LIMIT ?")
         else:
             off = cursor if cursor > 0 else 0
             args.extend([limit + 1, off])
@@ -4196,12 +4229,17 @@ class _Handler(BaseHTTPRequestHandler):
         rows = self.db.query(sql, tuple(args))
         more = len(rows) > limit
         rows = rows[:limit]
+        if _up:
+            rows = list(reversed(rows))          # ASC → DESC，与列表同序
         items = [self._img_item(r) for r in rows]
         # ⚠⚠ next_cursor 必须是**本页最后一行**（裁片后算），绝不是那条
         # 多取出来的 peek 行：拿 peek 行当 cursor，下一页从它下面开始
         # ⇒ 每页边界稳定漏一张（实测 200 张图翻两页只拿到 199）。
         # time 排序 = 最后一行的 id；OFFSET 排序 = 下一页的偏移量。
-        if _norm_sort(sort) == "time":
+        # 向上翻时 next_cursor 无用（前端拿列表头 id 当下一次 before），给 None。
+        if _up:
+            nxt = None
+        elif _is_time:
             nxt = rows[-1]["id"] if (more and rows) else None
         else:
             nxt = (off + limit) if more else None
@@ -6855,6 +6893,103 @@ class _Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
+    # ── V0.0.71：AI 看图说词（扫描 → 候选词 → 勾选写库）────────────────
+    def _api_autovocab_start(self, body):
+        """起一个后台扫描作业：AI 看图生成候选词。扫描可能几分钟，不占请求线程。"""
+        b = body or {}
+        method = str(b.get("method") or "vocab").strip().lower()
+        if method not in ("vocab", "local", "api"):
+            method = "vocab"
+        amount = str(b.get("amount") or "1000").strip()
+        if amount not in ("1000", "5000", "all"):
+            amount = "1000"
+        jid = _job_new("autovocab")
+
+        def _run():
+            from . import auto_vocab as av
+            prog = _job_progress(jid)
+            try:
+                from .config import get_active_config
+                res = av.scan(self.db, get_active_config(), method, amount,
+                              prog, stop_check=lambda: _jobs_mod.cancelled(jid))
+                # V0.0.77：扫完（含中途停止）按频率自动写进口味库白名单，
+                # 不再等手动勾选。用户手填词受保护、机器词只上调，幂等。
+                applied = {"added": 0, "updated": 0}
+                try:
+                    applied = av.auto_apply_scan(self.db, res)
+                except Exception:  # noqa: BLE001
+                    LOG.exception("autovocab auto-apply failed")
+                res["applied"] = applied
+                extra = (f"；已自动加入口味库 {applied.get('added', 0)} 个词"
+                         f"（更新 {applied.get('updated', 0)}）")
+                # warning（降级提示）也当作结果带回去，前端照常显示候选词（可能为空）
+                if res.get("stopped"):
+                    msg = f"已停止：扫了 {res.get('scanned', 0)} 张，说出 {len(res.get('words', []))} 个词" + extra
+                else:
+                    msg = (res.get("warning") or
+                           f"完成，AI 说出 {len(res.get('words', []))} 个词") + extra
+                _job_finish(jid, result=res, message=msg)
+            except Exception as e:  # noqa: BLE001
+                LOG.exception("autovocab scan failed")
+                _job_finish(jid, error=f"{type(e).__name__}: {e}")
+
+        import threading as _th
+        _th.Thread(target=_run, daemon=True, name="mrm-autovocab").start()
+        return {"ok": True, "id": jid, "method": method, "amount": amount}
+
+    def _api_autovocab_job(self, u):
+        """查扫描作业进度与结果。"""
+        jid = (parse_qs(u.query).get("id") or [""])[0]
+        rec = _job_get(jid)
+        if rec is None:
+            return {"ok": False, "error": "作业已过期或不存在，请重新发起"}
+        return {"ok": True, **rec}
+
+    def _api_autovocab_cancel(self, body):
+        """POST /api/autovocab/cancel {id} → 随时停止扫描。
+
+        优雅停止：循环每张图之间检查取消位，停了也把已扫出的词落盘保留
+        （V0.0.76，用户出门挂机场景）。"""
+        jid = str((body or {}).get("id") or "")
+        if _jobs_mod.cancel(jid):
+            return {"ok": True, "message": "已请求停止：当前这张图扫完就停，成果自动保留"}
+        return {"ok": False, "error": "该作业已结束或不存在"}
+
+    def _api_autovocab_last(self):
+        """GET /api/autovocab/last → 最近一次扫描成果（含中途停止的半截）。"""
+        from . import auto_vocab as av
+        last = av.last_scan(self.db)
+        if not last:
+            return {"ok": True, "found": False}
+        words = last.get("words") or []
+        return {"ok": True, "found": True,
+                "method": last.get("method"), "amount": "",
+                "scanned": last.get("scanned"), "total": last.get("total"),
+                "stopped": bool(last.get("stopped")),
+                "partial": bool(last.get("partial")),
+                "ts": last.get("ts"),
+                "words": words,
+                "compare": av.compare_stats(self.db)}
+
+    def _api_autovocab_apply(self, body):
+        """把用户勾选的词写进口味库（正权/负权）。"""
+        b = body or {}
+        yes = b.get("yes") or []
+        no = b.get("no") or []
+        if not isinstance(yes, list) or not isinstance(no, list):
+            return {"ok": False, "error": "勾选数据格式不对"}
+        try:
+            from . import auto_vocab as av
+            res = av.apply_choices(self.db, yes, no)
+            try:
+                self.db.audit(self._actor(), "autovocab-apply", "",
+                              f"yes={res['accepted']} no={res['rejected']}")
+            except Exception:
+                pass
+            return {"ok": True, **res, **self._api_find_terms()}
+        except Exception as e:
+            return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
     def _api_learning(self):
         """#44 学习看板：读**桌面端同一份** preference，并把看板口径也搬过来。
 
@@ -6906,6 +7041,12 @@ class _Handler(BaseHTTPRequestHandler):
                 })
             samples.sort(key=lambda s: -abs(s["weight"]))
             st["origins"] = LS.preference_origins(self.db)
+            # V0.0.76：两种学习法的实时对比（标签统计 vs AI 扫图造词）
+            try:
+                from . import auto_vocab as av
+                compare = av.compare_stats(self.db)
+            except Exception:
+                compare = None
             return {"ok": True, "items": items, "stats": st,
                     "samples": samples, "summary": LS.summary_line(st),
                     "origin_line": LS.origin_line(st["origins"]),
@@ -6913,6 +7054,7 @@ class _Handler(BaseHTTPRequestHandler):
                     # 函数**，两端文案不会漂。前端若还没接这个字段，
                     # 只是不显示，不影响旧渲染。
                     "sample_line": LS.sample_line(st),
+                    "compare": compare,
                     # R230：顺带把开关状态带出去，前端**一次请求**就能画勾选框，
                     # 不必再单独打一次（弱网下少一次「转圈」）。
                     "enabled": read_enabled(self.cfg),
@@ -7205,8 +7347,6 @@ class _Handler(BaseHTTPRequestHandler):
                 return {"ok": False, "error": f"目录不存在：{folder}"}
         except OSError as e:
             return {"ok": False, "error": f"目录打不开：{e}"}
-        if imp.is_running():
-            return {"ok": False, "error": "已有一个导入任务在跑，等它结束再开始"}
         force = _as_bool(body.get("force"), False)
         # 默认打标；显式传 tag:false 才只索引（用户想先把几万张翻一遍）
         do_tag = _as_bool(body.get("tag"), True)
@@ -7216,9 +7356,16 @@ class _Handler(BaseHTTPRequestHandler):
         # V0.0.35：「是否导入子文件夹」，默认开 = 保持老行为（全递归）。
         # 显式传 false（含字符串 "false"）才只看所选这一层。
         recursive = _as_bool(body.get("recursive"), True)
-        jid = _job_new("import")
-        evt = threading.Event()
+        # 2026-11-21 竞态修复：把「是否已有任务在跑」与「占位写入」合并进
+        # 同一把 _IMPORT_LOCK 临界区。原来 is_running() 在锁外，双击/并发
+        # 两次请求时后台线程还没起来，两次都判 False，后写的 _IMPORT_STATE
+        # 覆盖前者 job/cancel，后者失败时 finally 又会清掉前者仍在跑的任务
+        # 状态（取消事件丢失）。锁内再查一次 _IMPORT_STATE 即可挡住第二个。
         with _IMPORT_LOCK:
+            if imp.is_running() or _IMPORT_STATE.get("job"):
+                return {"ok": False, "error": "已有一个导入任务在跑，等它结束再开始"}
+            jid = _job_new("import")
+            evt = threading.Event()
             _IMPORT_STATE["job"] = jid
             _IMPORT_STATE["cancel"] = evt
         cfg, db = self.cfg, self.db
@@ -7571,11 +7718,15 @@ class _Handler(BaseHTTPRequestHandler):
         do_tag = _as_bool(body.get("tag"), True)
         copy_to_library = _as_bool(body.get("copy"), False)
         recursive = _as_bool(body.get("recursive"), True)
-        if imp.is_running():
-            return {"ok": False, "error": "已有一个导入任务在跑，等它结束再开始"}
-        jid = _job_new("import")
-        evt = threading.Event()
+        # 2026-11-21 竞态修复：检查 + 占位写进同一把 _IMPORT_LOCK 临界区。
+        # 原来 is_running() 在锁外，双击/并发两次请求时后台线程还没起来，
+        # 两次都判 False；后写的 _IMPORT_STATE 覆盖前者 job/cancel，后者
+        # 失败时 finally 又会清掉前者仍在跑的任务状态（取消事件丢失）。
         with _IMPORT_LOCK:
+            if imp.is_running() or _IMPORT_STATE.get("job"):
+                return {"ok": False, "error": "已有一个导入任务在跑，等它结束再开始"}
+            jid = _job_new("import")
+            evt = threading.Event()
             _IMPORT_STATE["job"] = jid
             _IMPORT_STATE["cancel"] = evt
         cfg, db = self.cfg, self.db
@@ -7660,11 +7811,15 @@ class _Handler(BaseHTTPRequestHandler):
         do_tag = _as_bool(body.get("tag"), True)
         copy_to_library = _as_bool(body.get("copy"), False)
         recursive = _as_bool(body.get("recursive"), True)
-        if imp.is_running():
-            return {"ok": False, "error": "已有一个导入任务在跑，等它结束再开始"}
-        jid = _job_new("import")
-        evt = threading.Event()
+        # 2026-11-21 竞态修复：检查 + 占位写进同一把 _IMPORT_LOCK 临界区。
+        # 原来 is_running() 在锁外，双击/并发两次请求时后台线程还没起来，
+        # 两次都判 False；后写的 _IMPORT_STATE 覆盖前者 job/cancel，后者
+        # 失败时 finally 又会清掉前者仍在跑的任务状态（取消事件丢失）。
         with _IMPORT_LOCK:
+            if imp.is_running() or _IMPORT_STATE.get("job"):
+                return {"ok": False, "error": "已有一个导入任务在跑，等它结束再开始"}
+            jid = _job_new("import")
+            evt = threading.Event()
             _IMPORT_STATE["job"] = jid
             _IMPORT_STATE["cancel"] = evt
         cfg, db = self.cfg, self.db
@@ -8647,6 +8802,10 @@ class _Handler(BaseHTTPRequestHandler):
                     off = int((q.get("offset") or ["0"])[0])
                 except (TypeError, ValueError):
                     off = 0
+                # 2026-11-21：与 _api_export_history / _api_site_stats 同一
+                # 口径 —— 解析完再钳制范围。负 offset 是「未来期」，会算出
+                # 异常时间窗（month 分支还会把年月一路往回滚），必须钳到 0。
+                off = max(0, off)
                 period = (q.get("period") or ["week"])[0]
                 data = ek.report_bytes(self.db, period, off)
                 name = f"mrm_report_{ts}.mrmx"
@@ -9662,6 +9821,12 @@ class _Handler(BaseHTTPRequestHandler):
 
         real = {f.name for f in _dc_fields(self.cfg)}
         changed = {}
+        # 2026-11-21 安全闸修复：下面循环会逐步 setattr 到 self.cfg，必须在
+        # 写内存**之前**给三个安全键拍快照。原来命中闸时只在 "web_bind" in
+        # changed 才回滚，遇到「沿用旧值 0.0.0.0，本次只改 web_password/
+        # web_lan_open」的请求就不会回滚，空密码+非回环绑定立即生效。
+        _security_keys = ("web_bind", "web_password", "web_lan_open")
+        _security_snapshot = {k: getattr(self.cfg, k, None) for k in _security_keys}
         for k, v in body.items():
             if k not in self._SETTINGS_WRITABLE:
                 continue
@@ -9771,7 +9936,7 @@ class _Handler(BaseHTTPRequestHandler):
             # 先拆成 list 再落盘；否则写入的会是一个字符串而非数组。
             # 2026-11-05：global_blacklist / sensitive_words 用专用拆分器——
             # 这两个字段是 CJK 子串匹配，前端常整串粘贴（中文逗号分隔），
-            # 按空白+英文逗号拆会留下"词A，词B，词C"这种整串，永不命中。
+            # 按空白+英文逗号拆会留下"颜射，老，黑女"这种整串，永不命中。
             if k in ("global_blacklist", "sensitive_words"):
                 if isinstance(v, str):
                     nv = _split_word_list(v)
@@ -9831,9 +9996,12 @@ class _Handler(BaseHTTPRequestHandler):
         _np = str(getattr(self.cfg, "web_password", "") or "")
         if _nb and not _is_loopback(_nb) and not _np.strip() \
                 and bool(getattr(self.cfg, "web_lan_open", False)):
-            # 只回滚本轮改动的这两个键，其余已 setattr 的项照旧落盘
-            if "web_bind" in changed:
-                setattr(self.cfg, "web_bind", "127.0.0.1")
+            # 无条件把三个安全键回滚到本轮开始前的快照 —— 不管本轮有没有
+            # 改 web_bind（它可能只是沿用了旧的非回环值）。其余非安全项保持
+            # 已 setattr 的状态，与改动前的处理口径一致；这里提前 return
+            # 不写盘，所以配置不会被半保存。
+            for _k in _security_keys:
+                setattr(self.cfg, _k, _security_snapshot[_k])
             return {"ok": False,
                     "error": "监听地址 " + _nb + " 对网络内所有设备开放，但未设置"
                              "密码 —— 请先设置一个非空密码，或把监听地址改回 "

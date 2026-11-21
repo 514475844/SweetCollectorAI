@@ -255,6 +255,9 @@ _C_SPLASH_G2 = "#6aa8ff"        # 顶部品牌渐变（蓝）
 _C_SPLASH_G3 = "#5ad2f0"        # 顶部品牌渐变（青）
 _C_SPLASH_TITLE = "#3a3f52"     # 字标缺失时的纯文字标题
 _C_SPLASH_TIP = "#8a8fa3"       # 「正在启动…」
+_C_SPLASH_BORDER = "#1a1d28"    # 磨砂卡片黑边框（用户：太不明显了，加个黑边框）
+_C_SPLASH_FROST = "#f4f6fc"     # 磨砂玻璃面（浅冷白，不依赖窗口透明，各处观感一致）
+_C_SPLASH_RING = "#e6e4ee"      # 启动旋转圈的浅灰底环
 
 
 def _qt_key_seq(event) -> str:
@@ -354,32 +357,24 @@ def _fade(widget, start: float, end: float, ms: int, on_done=None):
 
 
 def _show_splash(app):
-    """启动画面：白卡片 + 用户字标 + 「正在启动…」。
+    """启动画面（V0.0.66）：白卡片 + 上方 logo + 下方旋转加载圈。
 
-    起服务要读库、起队列、拉订阅，中间那几秒原来是一块白屏，用户会以为
-    没点着又双击一次。设置里「显示启动画面」关掉就完全不闪。
+    用户原话「上面有一个条，下方应该转圈圈」—— 原来顶部那条品牌渐变带去掉，
+    改成真正的旋转圈（浅灰底环 + 品牌色弧 + 深色描点），一眼看得出在加载。
+    起服务要读库、起队列、拉订阅，中间那几秒原来是白屏，用户会以为没点着
+    又双击一次。设置里「显示启动画面」关掉就完全不闪。
     """
     try:
-        from PySide6.QtCore import Qt
-        from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPixmap
+        import math
+        import random as _rnd
+        from PySide6.QtCore import Qt, QTimer, QRectF
+        from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap
         from PySide6.QtWidgets import QSplashScreen
-        pm = QPixmap(460, 268)
-        pm.fill(Qt.GlobalColor.transparent)
-        p = QPainter(pm)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        # 卡片本体
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(_C_SPLASH_CARD))
-        p.drawRoundedRect(0, 0, 460, 268, 16, 16)
-        # 顶部一条品牌渐变细带（紫 → 蓝，跟网页里的强调色一致）
-        grad = QLinearGradient(0, 0, 460, 0)
-        grad.setColorAt(0.0, QColor(_C_SPLASH_G1))
-        grad.setColorAt(0.55, QColor(_C_SPLASH_G2))
-        grad.setColorAt(1.0, QColor(_C_SPLASH_G3))
-        p.setBrush(grad)
-        p.drawRoundedRect(40, 34, 380, 4, 2, 2)
-        # 字标（用户给的 PNG 原图，没有就退回文字）
-        drew = False
+        import time as _time
+
+        W, H = 460, 268
+        # 用户字标（PNG 原图，没有就退回文字），只加载一次
+        logo = None
         try:
             from ..resources import resources_dir
             word = resources_dir() / "logo_wordmark.png"
@@ -387,33 +382,95 @@ def _show_splash(app):
                 raw = QPixmap(str(word))
                 if not raw.isNull():
                     logo = raw.scaledToWidth(
-                        250, Qt.TransformationMode.SmoothTransformation)
-                    # 字标自带星点装饰，位置要往上留，别和下面那行字挤在一起
-                    p.drawPixmap((460 - logo.width()) // 2, 78, logo)
-                    drew = True
-        except Exception:                          # noqa: BLE001
-            drew = False
-        if not drew:
-            f = QFont()
-            f.setPointSize(20)
-            f.setBold(True)
-            p.setFont(f)
-            p.setPen(QColor(_C_SPLASH_TITLE))
-            p.drawText(pm.rect().adjusted(0, -30, 0, 0),
-                       int(Qt.AlignmentFlag.AlignCenter), "Sweet 采集AI版")
-        # 正在启动…
-        f2 = QFont()
-        f2.setPointSize(10)
-        p.setFont(f2)
-        p.setPen(QColor(_C_SPLASH_TIP))
-        p.drawText(0, 196, 460, 30, int(Qt.AlignmentFlag.AlignCenter),
-                   "正在启动…")
-        p.end()
-        splash = QSplashScreen(pm)
+                        230, Qt.TransformationMode.SmoothTransformation)
+        except Exception:                              # noqa: BLE001
+            logo = None
+
+        # 磨砂颗粒只生成一次（固定种子），每帧复用，避免转圈时噪点在抖。
+        # 用极淡的半透明白点铺一层，模拟毛玻璃的细小颗粒质感。
+        grain = QPixmap(W, H)
+        grain.fill(Qt.GlobalColor.transparent)
+        g = QPainter(grain)
+        _gr = _rnd.Random(0x5EED)
+        for _ in range(6200):
+            _a = _gr.randint(14, 42)
+            # 一半冷灰、一半纯白：浅底上也能看出细颗粒，玻璃才不显得是块死白板
+            if _gr.random() < 0.55:
+                g.setPen(QColor(120, 130, 160, _a))
+            else:
+                g.setPen(QColor(255, 255, 255, _a + 20))
+            g.drawPoint(_gr.randrange(0, W), _gr.randrange(0, H))
+        g.end()
+
+        def _frame(angle):
+            """画一帧：黑边框磨砂卡片 + 上方 logo + 下方旋转圈（angle 决定弧的转角）。"""
+            pm = QPixmap(W, H)
+            pm.fill(Qt.GlobalColor.transparent)
+            p = QPainter(pm)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            p.setPen(Qt.PenStyle.NoPen)
+            # ① 黑边框：先铺一圈深色圆角底，比内面大 1px 露出描边
+            p.setBrush(QColor(_C_SPLASH_BORDER))
+            p.drawRoundedRect(0, 0, W, H, 17, 17)
+            # ② 磨砂玻璃面：内缩 2px 的浅冷白，保留深色描边
+            p.setBrush(QColor(_C_SPLASH_FROST))
+            p.drawRoundedRect(2, 2, W - 4, H - 4, 15, 15)
+            # ③ 磨砂颗粒叠层
+            p.drawPixmap(0, 0, grain)
+            # ④ 玻璃内高光：顶部与左侧一条细亮线，底部一条暗线（立体感）
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            hi = QPen(QColor(255, 255, 255, 190)); hi.setWidth(1)
+            p.setPen(hi)
+            p.drawRoundedRect(4, 4, W - 8, H - 8, 13, 13)
+            p.setPen(Qt.PenStyle.NoPen)
+            # 上方 logo（居中偏上）
+            if logo is not None:
+                p.drawPixmap((W - logo.width()) // 2, 46, logo)
+            else:
+                f = QFont(); f.setPointSize(20); f.setBold(True)
+                p.setFont(f); p.setPen(QColor(_C_SPLASH_TITLE))
+                p.drawText(0, 50, W, 60, int(Qt.AlignmentFlag.AlignCenter),
+                           "Sweet 采集AI版")
+            # 下方旋转圈：浅灰底环 + 品牌色弧 + 深色描点
+            cx, cy, r = W // 2, 182, 22
+            ring = QRectF(cx - r, cy - r, 2 * r, 2 * r)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            pen = QPen(QColor(_C_SPLASH_RING)); pen.setWidth(5)
+            p.setPen(pen)
+            p.drawArc(ring, 0, 360 * 16)               # 完整底环
+            pen = QPen(QColor(_C_SPLASH_G1)); pen.setWidth(5)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.setPen(pen)
+            span = 280
+            p.drawArc(ring, -angle * 16, span * 16)     # 旋转的弧
+            # 弧末端的深色描点（用户说「没有黑色描点看不清」）
+            rad = math.radians(-angle + span)
+            dot_x = cx + r * math.cos(rad)
+            dot_y = cy - r * math.sin(rad)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(_C_SPLASH_TITLE))
+            p.drawEllipse(QRectF(dot_x - 5, dot_y - 5, 10, 10))
+            # 「正在启动…」放在圈下方
+            f2 = QFont(); f2.setPointSize(10)
+            p.setFont(f2); p.setPen(QColor(_C_SPLASH_TIP))
+            p.drawText(0, 218, W, 24, int(Qt.AlignmentFlag.AlignCenter),
+                       "正在启动…")
+            p.end()
+            return pm
+
+        splash = QSplashScreen(_frame(0))
         splash.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         splash.setWindowOpacity(0.0)
-        import time as _time
         splash._mrm_shown_at = _time.monotonic()      # V0.0.46：满 3 秒才收
+        # 转圈动画：每 80ms 转 24°，挂在 splash 上防止被回收
+        state = {"a": 0}
+        def _tick():
+            state["a"] = (state["a"] + 24) % 360
+            splash.setPixmap(_frame(state["a"]))
+        timer = QTimer(splash)
+        timer.timeout.connect(_tick)
+        timer.start(80)
+        splash._mrm_spin_timer = timer
         splash.show()
         app.processEvents()
         _fade(splash, 0.0, 1.0, 180)
@@ -443,6 +500,12 @@ def _finish_splash(splash, win):
         return
 
     try:
+        # V0.0.64：启动画面期间窗口被挪到屏幕外渲染（defer_show），
+        # 这里先把它放回原位再淡入 —— 用户看到的就是「闪屏收、窗口亮」。
+        home = getattr(win, "_mrm_home", None) if win is not None else None
+        if home is not None:
+            win.move(home)
+            win._mrm_home = None
         if win is not None and win.isVisible():
             win.setWindowOpacity(0.0)
     except Exception:                                  # noqa: BLE001
@@ -451,6 +514,11 @@ def _finish_splash(splash, win):
     def _after():
         try:
             if splash is not None:
+                # V0.0.66：先停掉转圈定时器（挂在 splash 上），再关启动画面
+                spin = getattr(splash, "_mrm_spin_timer", None)
+                if spin is not None:
+                    try: spin.stop()
+                    except Exception: pass
                 splash.close()
         except Exception:                              # noqa: BLE001
             pass
@@ -472,7 +540,8 @@ def _finish_splash(splash, win):
         _after()
 
 
-def _open_embedded_window(url: str, on_close, start_hidden: bool = False):
+def _open_embedded_window(url: str, on_close, start_hidden: bool = False,
+                          defer_show: bool = False):
     """内置渲染内核开原生窗口，并收口全部浏览器痕迹。
 
     返回 (QMainWindow | None, 说明)。不可用（缺模块/初始化失败）返回
@@ -839,6 +908,15 @@ def _open_embedded_window(url: str, on_close, start_hidden: bool = False):
         win.resize(1360, 860)
         if start_hidden:
             win.hide()          # 启动进托盘：不弹窗，等托盘唤回
+        elif defer_show:
+            # V0.0.64（用户）：有启动画面时主窗口**先别在屏幕上露脸** ——
+            # 原来窗口和闪屏同时出现，3 秒后闪屏一收，用户看到的是
+            # 「启动动画一出主窗口也出、3 秒后闪屏」。现在把窗口挪到
+            # 屏幕外照常渲染（hide 会让内核不出首帧，所以不能真藏），
+            # 等 _finish_splash 收尾时再挪回原位淡入。
+            win._mrm_home = win.pos()
+            win.move(12000, 12000)
+            win.show()
         else:
             win.show()
         return win, ""
@@ -1105,7 +1183,8 @@ def shell_main(start_in_tray: bool = False) -> int:
     # ── ① 内置原生窗口 ────────────────────────────────────────────
     mode = ""
     if webengine_ok:
-        win, err = _open_embedded_window(url, _quit, start_hidden=start_hidden)
+        win, err = _open_embedded_window(url, _quit, start_hidden=start_hidden,
+                                         defer_show=(splash is not None))
         if win is not None:
             mode = "embedded"
         else:
@@ -1233,6 +1312,10 @@ def shell_main(start_in_tray: bool = False) -> int:
     if win is None and splash is not None:
         def _drop_splash():
             try:
+                spin = getattr(splash, "_mrm_spin_timer", None)
+                if spin is not None:
+                    try: spin.stop()
+                    except Exception: pass
                 splash.close()
             except Exception:                          # noqa: BLE001
                 pass

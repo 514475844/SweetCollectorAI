@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import os
 import sys
 from pathlib import Path
 
@@ -40,11 +41,14 @@ RE_SHORT_SUMMARY = re.compile(r"short test summary info")
 
 def _run_pytest(args, timeout=120):
     """跑一次真 pytest，返回 (rc, stdout+stderr 文本)。"""
-    cmd = [sys.executable, "-X", "utf8", "-m", "pytest", *args]
+    # -o addopts="" 必须带：pyproject 里的 --timeout 依赖 pytest-timeout，
+    # 本机没装那个插件，子进程会直接 "unrecognized arguments" 退出（环境性失败）。
+    cmd = [sys.executable, "-X", "utf8", "-m", "pytest", "-o", "addopts=", *args]
     env = {"PYTHONUNBUFFERED": "1", "QT_QPA_PLATFORM": "offscreen",
-           "PATH": "/usr/bin:/bin", "SYSTEMROOT": "C:/Windows",
-           "HOME": "/tmp", "TEMP": "C:/Users/admin/AppData/Local/Temp",
-           "TMP": "C:/Users/admin/AppData/Local/Temp"}
+           "PATH": os.environ.get("PATH", ""), "SYSTEMROOT": "C:/Windows",
+           "HOME": os.environ.get("HOME", ""),
+           "TEMP": os.environ.get("TEMP", ""),
+           "TMP": os.environ.get("TMP", "")}
     p = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True,
                        encoding="utf-8", errors="replace", timeout=timeout,
                        env=env)
@@ -63,10 +67,14 @@ def test_q_mode_controls_the_final_summary_line(extra, expect_summary):
     assert rc == 0, f"对照组本身没跑通 rc={rc}\n{out[-800:]}"
     assert RE_SHORT_SUMMARY.search(out) is None or True  # 短摘要在 -q 下可省
     got = bool(RE_FINAL_SUMMARY.search(out))
-    assert got is expect_summary, (
-        f"-q={bool(extra)} 时收尾汇总行期望 {expect_summary} 实得 {got}\n"
-        f"尾部: {out[-400:]}"
-    )
+    # pytest 8.x 起 -q 也打 "N passed in Xs" 收尾行（R71 当年是 pytest 7，
+    # -q 不打）。这个元测试的目的是钉「判据别只看汇总行有没有」，不是钉
+    # pytest 某版本的输出格式。真正稳定的判据是 rc=0 + 数字计数，两者都在
+    # 就说明跑完了。故这里只要求「默认模式一定有汇总行」，-q 下有无皆可。
+    if expect_summary:
+        assert got, f"默认模式应有收尾汇总行，尾部: {out[-400:]}"
+    # rc==0 且输出含明确的 "N passed" 计数 —— 这才是跨版本稳定的完成信号。
+    assert re.search(r"\d+\s+passed\b", out), f"看不到通过计数，尾部: {out[-400:]}"
 
 
 def test_the_false_red_anchor_is_not_used_as_crash_evidence():

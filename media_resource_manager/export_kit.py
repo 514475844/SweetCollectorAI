@@ -377,8 +377,10 @@ def export_training_kit(db, cfg, dest, options: dict | None = None) -> dict:
                 wanted.add(int(x))
             except (TypeError, ValueError):
                 continue
-        if wanted:
-            rows = [r for r in rows if int(r["id"]) in wanted]
+        # 2026-11-21：「没给 ids」(None) 才按分数捞全量；只要明确给了
+        # list/tuple，哪怕空列表/全非法，也表示「一个都没选中」，必须
+        # rows=[]。原来 `if wanted:` 在空集合时跳过滤镜，反而导出全部。
+        rows = [r for r in rows if int(r["id"]) in wanted]
 
     # 先算出所有源图所在目录，用于拒绝「导出到原目录」。
     source_dirs: set[Path] = set()

@@ -1,0 +1,27 @@
+# .dockerignore —— 别把几十上百 MB 的日志/构建产物/数据集塞进 build context
+# （直接拖慢 build + 撑大镜像）。被排除的都不参与 COPY。
+
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.git/
+.gitignore
+.pytest_cache/
+.venv/
+venv/
+__venv__/
+build/
+dist/
+*.log
+full_*.log
+full_*.xml
+data/
+cache/
+_deliver_*.zip
+tests/
+docs/
+examples/
+vendor/
+extension/
+.workbuddy/
+*.spec

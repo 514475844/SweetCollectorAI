@@ -30,8 +30,8 @@ def test_supported_protocols():
 
 def test_slug_is_stable_and_safe():
     m = _load_module()
-    a = m._slug("smb", "192.168.1.100", "/photo/2026")
-    b = m._slug("smb", "192.168.1.100", "/photo/2026")
+    a = m._slug("smb", "192.168.1.50", "/photo/2026")
+    b = m._slug("smb", "192.168.1.50", "/photo/2026")
     assert a == b
     assert "smb_" in a and len(a) < 80
 

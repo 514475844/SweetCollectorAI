@@ -3,9 +3,21 @@
 // 统计来自 classify.learning_stats.collect，权重来自 repo.get_preferences）。
 // 老界面（/classic）有「学习看板」页，新版只把它塞进设置里的三个按钮 —— 这里补成独立页。
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../api'
 import { useShellRefresh } from '../shellVue'
 import Icon from '../components/Icon.vue'
+// V0.0.71：AI 看图自己说词 → 勾选 → 写进口味库（首页=学习看板同一页）
+import AutoVocab from '../components/AutoVocab.vue'
+const showAutoVocab = ref(false)
+// V0.0.75：新手引导第 1 步跳过来时带 ?vocab=1，自动展开「让 AI 认识我的图库」
+const route = useRoute()
+if (route.query && route.query.vocab === '1') showAutoVocab.value = true
+async function onVocabApplied(r) {
+  showAutoVocab.value = false
+  info.value = `已写入 ${r.accepted || 0} 个要、${r.rejected || 0} 个不要`
+  await load(); await loadTerms()
+}
 
 const d = ref(null)
 const loading = ref(false)
@@ -38,6 +50,14 @@ const cards = computed(() => {
   return STAT_LABELS
     .filter(([k]) => st[k] !== undefined)
     .map(([k, label]) => ({ label, value: st[k] }))
+})
+
+// V0.0.76：两种学习法的实时数据对比（标签统计 vs AI 扫图造词）
+const compare = computed(() => d.value?.compare || null)
+const cmpTime = computed(() => {
+  const ts = compare.value?.ai_scan?.ts
+  if (!ts) return ''
+  return new Date(ts * 1000).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 })
 
 const samples = computed(() => {
@@ -215,6 +235,19 @@ useShellRefresh(() => { load(); loadFb(); loadTerms() })
       </div>
     </div>
 
+    <!-- V0.0.71：首页（=学习看板）入口 —— AI 看图说词 → 用户勾选 -->
+    <div class="card vocab-entry" @click="showAutoVocab = !showAutoVocab">
+      <div class="ve-ic"><Icon name="sparkles" :size="22" /></div>
+      <div class="ve-txt">
+        <b>让 AI 认识我的图库</b>
+        <span class="muted small">AI 看图说出词汇 → 勾选确认 → 写入口味库，采集更准</span>
+      </div>
+      <span class="ve-go">{{ showAutoVocab ? '收起 ▲' : '进入 ▼' }}</span>
+    </div>
+    <!-- V0.0.78：用 v-show 保留组件实例 —— v-if 会在收起时卸载组件、清掉轮询定时器，
+         后端作业照跑但前端不再轮询，再展开只剩 loadLast()，看不到实时进度和停止按钮。 -->
+    <AutoVocab v-show="showAutoVocab" class="card" @applied="onVocabApplied" />
+
     <p v-if="err" class="err">{{ err }}</p>
     <p v-else-if="info" class="ok">{{ info }}</p>
 
@@ -226,6 +259,40 @@ useShellRefresh(() => { load(); loadFb(); loadTerms() })
       <div class="stats">
         <div class="st" v-for="c in cards" :key="c.label">
           <b>{{ c.value }}</b><span class="muted small">{{ c.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- V0.0.76：两种学习法的实在数据对比 -->
+    <div v-if="compare" class="card body">
+      <div class="thead">
+        <h3>两种学习方式的数据对比<span class="muted small">（AI 扫图：{{ cmpTime || '尚未扫描' }}）</span></h3>
+      </div>
+      <div class="stats">
+        <div class="st">
+          <b>{{ compare.tag_based.distinct_tags }}</b><span class="muted small">标签统计：全库认识的词</span>
+        </div>
+        <div class="st">
+          <b>{{ compare.tag_based.learned_words }}</b><span class="muted small">标签统计：已学口味词</span>
+        </div>
+        <div class="st">
+          <b>{{ compare.ai_scan.words }}</b><span class="muted small">AI 扫图：说出的词</span>
+        </div>
+        <div class="st" :class="compare.novel_count ? 'hl' : ''">
+          <b>{{ compare.novel_count }}</b><span class="muted small">AI 扫图：全新词（标签里没有）</span>
+        </div>
+      </div>
+      <p class="muted small" v-if="compare.ai_scan.scanned">
+        AI 已看图 {{ compare.ai_scan.scanned.toLocaleString('zh-CN') }} 张{{ compare.ai_scan.stopped ? '（已停止，成果保留）' : '' }}；
+        「全新词」是 AI 看图自己造出、旧方式（只统计已有标签）永远不会出现的词。
+      </p>
+      <p class="muted small" v-else>
+        旧方式从已有标签学词（只能学到认识的词）；AI 扫图能造出全新的词。发起一次扫描后，这里显示实际差距。
+      </p>
+      <div class="tw" v-if="(compare.novel_words || []).length">
+        <div class="tr th nrow"><span>全新词（示例，按词频排序）</span></div>
+        <div v-for="w in compare.novel_words.slice(0, 12)" :key="w" class="tr nrow">
+          <span class="w">{{ w }}</span>
         </div>
       </div>
     </div>
@@ -314,6 +381,10 @@ useShellRefresh(() => { load(); loadFb(); loadTerms() })
 
 <style scoped>
 .page { display: grid; gap: 14px; }
+.vocab-entry { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; border-color: var(--brand, #7c6cf0); background: var(--brand-bg, #f5f3ff); }
+.ve-ic { width: 44px; height: 44px; border-radius: 12px; background: var(--brand, #7c6cf0); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.ve-txt { display: flex; flex-direction: column; gap: 2px; }
+.ve-go { margin-left: auto; color: var(--brand, #7c6cf0); font-size: 13px; white-space: nowrap; }
 .bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 10px; flex-wrap: wrap; }
 .left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ops { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -327,6 +398,9 @@ h3 { margin: 0 0 6px; font-size: 15px; }
 .fbrow { display: grid; grid-template-columns: 1fr 88px 100px 56px; gap: 8px; align-items: center;
          padding: 8px 4px; border-bottom: 1px solid var(--line, rgba(0,0,0,.06)); }
 .fbth { font-size: 12px; color: var(--muted, #888); font-weight: 600; }
+.nrow { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: center;
+        padding: 6px 4px; border-bottom: 1px solid var(--line, rgba(0,0,0,.06)); }
+.st.hl { background: var(--brand-bg, #f5f3ff); outline: 1.5px solid var(--brand, #7c6cf0); }
 @media (max-width: 720px) {
   .fbrow { grid-template-columns: 1fr 64px 84px 48px; }
 }

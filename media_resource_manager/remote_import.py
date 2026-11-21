@@ -238,7 +238,7 @@ def _smb_download(host, port, user, password, full, dest):
 def import_remote(db, cfg, protocol: str, host: str, *, port: int = 0,
                   user: str = "", password: str = "", remote_path: str = "",
                   recursive: bool = True, do_tag: bool = True,
-                  copy_to_library: bool = False,
+                  copy_to_library: bool = False, mark_pending: bool = False,
                   stop: Optional[Callable[[], bool]] = None,
                   progress: Optional[Callable[..., None]] = None) -> dict:
     """枚举 → 下载 → 入库打标。返回结构与 import_folder.import_folder 一致。"""
@@ -311,7 +311,8 @@ def import_remote(db, cfg, protocol: str, host: str, *, port: int = 0,
         msg += f"，失败 {len(failed)} 张"
     progress("index", 0, done, msg, "", 30)
     return imp.import_folder(
-        db, cfg, str(dest_root), tag=do_tag, copy=copy_to_library,
+        db, cfg, str(dest_root), do_tag=do_tag,
+        mark_pending=mark_pending, copy_to_library=copy_to_library,
         recursive=recursive, stop=stop,
         progress=lambda ph, d, t, n, eta, pct: progress(
             ph, d, t, n, eta, 30 + int(70 * (pct or 0) / 100)),

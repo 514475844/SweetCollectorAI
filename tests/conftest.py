@@ -82,13 +82,16 @@ def _faulthandler_guard():
     `faulthandler.dump_traceback_later` 是唯一能在这种时刻还拿到栈的手段：
     它由 CPython 的看门狗线程触发，不依赖任何 Qt/事件循环状态。
 
-    触发阈值 420s：全量现在只要 ~170s，留 2.5 倍余量；再慢就说明真的挂了，
-    打印栈比让人干等有用。注意 `exit=True` 只在**超时那一刻**生效，正常跑完
-    会在 teardown 里取消它，所以它不会影响任何一次正常运行的退出码。
+    触发阈值 1800s（30 分钟）：早期全量 ~170s 定了 420s，后来测试涨到 4000+
+    条、含多个 90s 的 GUI 真机用例，全量实测要 12~15 分钟——420s 会把**正常
+    在跑**的测试当成挂死掐掉（2026-11-21 实测两次卡在 56%/7min 就是它）。
+    30 分钟足够正常全量跑完，真挂死时打印栈仍比干等有用。看门狗阈值存在且
+    可被 monkeypatch 调大由 test_r71 护栏钉死，这里改值不影响契约。
+    注意 `exit=True` 只在**超时那一刻**生效，正常跑完会在 teardown 里取消。
     """
     import faulthandler
     faulthandler.enable()
-    faulthandler.dump_traceback_later(420, exit=True)
+    faulthandler.dump_traceback_later(1800, exit=True)
     try:
         yield
     finally:

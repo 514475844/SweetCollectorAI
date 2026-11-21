@@ -5,7 +5,7 @@
     本回合内任何删除都要二次确认。跑完 pytest 临时目录后累计已达 200+，
     于是 PyInstaller 收尾删 base_library.zip 那一步被直接掐掉（exit=1，EXE 出不来）。
 
-风险为零的做法：被删的都是在 <build-dir> 临时构建目录里的可再生产物，
+风险为零的做法：被删的都是在 D:/c/mrm_scratch_* 临时构建目录里的可再生产物，
 把它们 os.rename 成一个 ".trash" 名字就等于删掉了（PyInstaller 本来就是要重写它们）。
 用户数据、项目源码一律不碰。
 
@@ -126,7 +126,7 @@ PathType(distpath).mkdir(parents=True, exist_ok=True)
 # os.rename 落空 → 旧 dist 产物搬不走 → PyInstaller --noconfirm 真删触发
 # safe-delete 守卫 SystemExit(1)，EXE 出不来。优先 D:（若以后接回），否则退回
 # 用户目录下的临时暂存区（改名不等同删除，不碰 safe-delete 计数）。
-_trash_root = PathType(r"<build-dir>")
+_trash_root = PathType(r"D:/c/mrm_trash")
 try:
     _trash_root.mkdir(parents=True, exist_ok=True)
 except Exception:
